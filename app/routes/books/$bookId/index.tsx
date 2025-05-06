@@ -1,0 +1,250 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { database } from "~/db";
+import { books, chapters, type Book, type Chapter } from "~/db/schema";
+import { eq } from "drizzle-orm";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { Button } from "~/components/ui/button";
+import { PlusCircle, Loader2, Pencil } from "lucide-react";
+import { adminMiddleware } from "~/lib/auth";
+import { useToast } from "~/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { isAdminFn } from "~/fn/auth";
+import { format } from "date-fns";
+
+const getBookWithChaptersFn = createServerFn()
+  .validator(z.object({ bookId: z.string() }))
+  .handler(async ({ data: { bookId } }) => {
+    const book = await database.query.books.findFirst({
+      where: eq(books.id, parseInt(bookId)),
+    });
+
+    if (!book) {
+      throw new Error("Book not found");
+    }
+
+    const bookChapters = await database.query.chapters.findMany({
+      where: eq(chapters.bookId, book.id),
+      orderBy: chapters.order,
+    });
+
+    return { book, chapters: bookChapters };
+  });
+
+const createChapterFn = createServerFn()
+  .middleware([adminMiddleware])
+  .validator(
+    z.object({
+      bookId: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    // Get the current highest order for chapters in this book
+    const highestOrder = await database.query.chapters.findFirst({
+      where: eq(chapters.bookId, parseInt(data.bookId)),
+      orderBy: (chapters, { desc }) => [desc(chapters.order)],
+    });
+
+    const nextOrder = (highestOrder?.order ?? 0) + 1;
+
+    const chapter = await database
+      .insert(chapters)
+      .values({
+        bookId: parseInt(data.bookId),
+        title: "New Chapter",
+        content: "<p>Start writing your chapter here...</p>",
+        order: nextOrder,
+      })
+      .returning();
+
+    return { chapter: chapter[0] };
+  });
+
+export const Route = createFileRoute("/books/$bookId/")({
+  component: RouteComponent,
+  loader: async () => {
+    const isAdmin = await isAdminFn();
+    return { isAdmin };
+  },
+});
+
+function RouteComponent() {
+  const { bookId } = Route.useParams();
+  const { isAdmin } = Route.useLoaderData();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["book", bookId],
+    queryFn: () => getBookWithChaptersFn({ data: { bookId } }),
+  });
+
+  const createChapterMutation = useMutation({
+    mutationFn: () => createChapterFn({ data: { bookId } }),
+    onSuccess: ({ chapter }) => {
+      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      toast({
+        title: "Success",
+        description: "Chapter created successfully!",
+      });
+      navigate({
+        to: "/books/$bookId/chapters/$chapterId",
+        params: { bookId, chapterId: chapter.id.toString() },
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to create chapter:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create chapter. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-2/3 mb-8"></div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-4 bg-gray-200 rounded w-1/2"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="text-red-600">Error loading book: {error.message}</div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  const { book, chapters = [] } = data;
+
+  return (
+    <div className="max-w-5xl mx-auto">
+      <div className="flex gap-8 mb-8">
+        {/* Book Cover Image */}
+        <div className="flex-shrink-0">
+          <img
+            src="https://img.wattpad.com/cover/392642739-256-k475365.jpg"
+            alt={`Cover for ${book.title}`}
+            className="w-48 h-64 object-cover rounded-lg shadow-md"
+          />
+        </div>
+
+        {/* Book Info */}
+        <div className="flex-grow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-2">
+              <div className="flex items-baseline gap-4">
+                <h1 className="text-4xl font-bold">{book.title}</h1>
+              </div>
+              <div className="flex items-center gap-4 text-gray-600">
+                <span>
+                  {chapters.length}{" "}
+                  {chapters.length === 1 ? "Chapter" : "Chapters"}
+                </span>
+              </div>
+            </div>
+            {isAdmin && (
+              <Button variant="outline" size="sm" asChild>
+                <Link
+                  to="/books/$bookId/edit"
+                  params={{ bookId: book.id.toString() }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit
+                </Link>
+              </Button>
+            )}
+          </div>
+          <p className="text-gray-600 mb-6">{book.description}</p>
+
+          {/* Start Reading Button */}
+          {chapters.length > 0 && (
+            <Button
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              asChild
+            >
+              <Link
+                to="/books/$bookId/chapters/$chapterId"
+                params={{
+                  bookId: book.id.toString(),
+                  chapterId: chapters[0].id.toString(),
+                }}
+              >
+                Start Reading
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">Chapters</h2>
+          {isAdmin && (
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2"
+              onClick={() => createChapterMutation.mutate()}
+              disabled={createChapterMutation.isPending}
+            >
+              {createChapterMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PlusCircle className="w-4 h-4" />
+              )}
+              <span>Add Chapter</span>
+            </Button>
+          )}
+        </div>
+        {chapters.length === 0 ? (
+          <p className="text-gray-500">No chapters available yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {chapters.map((chapter: Chapter, index: number) => (
+              <Link
+                key={chapter.id}
+                to="/books/$bookId/chapters/$chapterId"
+                params={{
+                  bookId: book.id.toString(),
+                  chapterId: chapter.id.toString(),
+                }}
+                className="block p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">
+                    {index + 1}. {chapter.title}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {format(new Date(chapter.createdAt), "MMM d, yyyy")}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

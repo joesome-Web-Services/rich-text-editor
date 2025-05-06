@@ -1,0 +1,3 @@
+the-writing-platform.webdevcody.com {
+    reverse_proxy the-writing-platform-app:3000
+} 

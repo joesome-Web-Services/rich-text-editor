@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  the-writing-platform-db:
+    image: postgres:17
+    restart: always
+    container_name: the-writing-platform-db
+    ports:
+      - 127.0.0.1:5432:5432
+    env_file:
+      - .env.postgres
+    volumes:
+      - postgres:/data/postgres
+
+  the-writing-platform-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: the-writing-platform-app
+    env_file:
+      - .env
+    restart: always
+    container_name: the-writing-platform-app
+    volumes:
+      - app_files:/app/files
+
+  caddy:
+    image: caddy:2
+    restart: always
+    container_name: the-writing-platform-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - the-writing-platform-app
+
+volumes:
+  postgres:
+  caddy_data:
+  caddy_config:
+  app_files:

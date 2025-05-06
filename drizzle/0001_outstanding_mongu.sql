@@ -1,0 +1,1 @@
+ALTER TABLE "app_chapter" ADD COLUMN "isPublished" boolean DEFAULT false NOT NULL;
