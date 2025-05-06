@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { chapters, books } from "~/db/schema";
@@ -44,6 +44,8 @@ import {
   Globe,
   EyeOff,
   ArrowLeft,
+  BookOpen,
+  ArrowRight,
 } from "lucide-react";
 import { Toggle } from "~/components/ui/toggle";
 import { cn } from "~/lib/utils";
@@ -289,10 +291,11 @@ interface ChapterViewProps {
 
 function ChapterView({ title, content }: ChapterViewProps) {
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="text-5xl font-bold mb-8">{title}</h1>
+    <div className="max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-center">{title}</h1>
+      <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
       <div
-        className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none"
+        className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl"
         dangerouslySetInnerHTML={{ __html: content }}
       />
     </div>
@@ -324,8 +327,8 @@ function ChapterNavigation({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[200px]">
-        {data.chapters.map((chapter) => (
-          <DropdownMenuItem key={chapter.id} className="cursor-pointer">
+        {data.chapters.map((chapter, index) => (
+          <DropdownMenuItem key={chapter.id} asChild>
             <RouterLink
               to="/books/$bookId/chapters/$chapterId"
               params={{
@@ -337,12 +340,58 @@ function ChapterNavigation({
                 parseInt(currentChapterId) === chapter.id && "font-bold"
               )}
             >
-              {chapter.title}
+              {index + 1}. {chapter.title}
             </RouterLink>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+interface NextChapterButtonProps {
+  bookId: string;
+  currentChapterId: string;
+}
+
+function NextChapterButton({
+  bookId,
+  currentChapterId,
+}: NextChapterButtonProps) {
+  const { data } = useQuery({
+    queryKey: ["book-chapters", bookId],
+    queryFn: () => getBookChaptersFn({ data: { bookId } }),
+  });
+
+  const router = useRouter();
+
+  if (!data?.chapters) return null;
+
+  const currentIndex = data.chapters.findIndex(
+    (chapter) => chapter.id === parseInt(currentChapterId)
+  );
+
+  if (currentIndex === -1 || currentIndex === data.chapters.length - 1)
+    return null;
+
+  const nextChapter = data.chapters[currentIndex + 1];
+
+  return (
+    <Button
+      className="gap-2 w-full max-w-2xl mx-auto"
+      onClick={() => {
+        router.navigate({
+          to: "/books/$bookId/chapters/$chapterId",
+          params: {
+            bookId: bookId,
+            chapterId: nextChapter.id.toString(),
+          },
+        });
+      }}
+    >
+      <span>Continue to Next Chapter</span>
+      <ArrowLeft className="h-4 w-4 rotate-180" />
+    </Button>
   );
 }
 
@@ -504,6 +553,10 @@ function RouteComponent() {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
         <ChapterView title={chapter.title} content={chapter.content} />
+        <hr className="my-8" />
+        <div className="flex justify-end mt-8">
+          <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
+        </div>
       </div>
     );
   }
@@ -513,146 +566,156 @@ function RouteComponent() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          asChild
-          className="mb-8 -ml-2 text-muted-foreground hover:text-foreground"
+    <>
+      <div className="pt-4 border-b border-gray-200 pb-4 text-center flex gap-4 justify-center items-center">
+        <RouterLink
+          to="/books/$bookId"
+          className="flex gap-2 items-center"
+          params={{
+            bookId: bookId,
+          }}
         >
-          <RouterLink
-            to="/books/$bookId"
-            params={{ bookId }}
-            className="inline-flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Cover</span>
-          </RouterLink>
-        </Button>
-        <h1 className="text-4xl font-semibold text-muted-foreground mb-12">
-          {bookData?.book.title}
-        </h1>
-        <div className="flex justify-between items-center">
-          <ChapterNavigation bookId={bookId} currentChapterId={chapterId} />
-          {isAdmin && (
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsPreview(!isPreview)}
-                className="inline-flex items-center gap-2"
-              >
-                {isPreview ? (
-                  <>
-                    <Edit className="h-4 w-4" />
-                    <span>Edit</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    <span>Preview</span>
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() =>
-                  togglePublishMutation.mutate(!data?.chapter.isPublished)
-                }
-                disabled={togglePublishMutation.isPending}
-                className="inline-flex items-center gap-2"
-              >
-                {togglePublishMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : data?.chapter.isPublished ? (
-                  <>
-                    <EyeOff className="h-4 w-4" />
-                    <span>Unpublish</span>
-                  </>
-                ) : (
-                  <>
-                    <Globe className="h-4 w-4" />
-                    <span>Publish</span>
-                  </>
-                )}
-              </Button>
-              <Button
-                type="submit"
-                form="chapter-form"
-                disabled={updateChapterMutation.isPending || isPreview}
-                className="inline-flex items-center gap-2"
-              >
-                {updateChapterMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                <span>Save Changes</span>
-              </Button>
-            </div>
-          )}
-        </div>
+          <img
+            src="https://img.wattpad.com/cover/392642739-256-k475365.jpg"
+            className="size-6 object-cover rounded-full shadow-md"
+          />
+          <h1 className="text-xl font-semibold text-muted-foreground">
+            {bookData?.book.title}
+          </h1>
+        </RouterLink>
       </div>
 
-      {isPreview ? (
-        <ChapterView
-          title={form.getValues("title")}
-          content={form.getValues("content")}
-        />
-      ) : (
-        <Form {...form}>
-          <form
-            id="chapter-form"
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-8"
-          >
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      className="text-5xl font-bold border-none px-0 focus-visible:ring-0"
-                      placeholder="Chapter Title"
-                      disabled={isPreview}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div className="max-w-5xl mx-auto pt-12">
+        <div className="mb-8">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2 items-center">
+              <ChapterNavigation bookId={bookId} currentChapterId={chapterId} />
+            </div>
+            {isAdmin && (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsPreview(!isPreview)}
+                  className="inline-flex items-center gap-2"
+                >
+                  {isPreview ? (
+                    <>
+                      <Edit className="h-4 w-4" />
+                      <span>Edit</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4" />
+                      <span>Preview</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() =>
+                    togglePublishMutation.mutate(!data?.chapter.isPublished)
+                  }
+                  disabled={togglePublishMutation.isPending}
+                  className="inline-flex items-center gap-2"
+                >
+                  {togglePublishMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : data?.chapter.isPublished ? (
+                    <>
+                      <EyeOff className="h-4 w-4" />
+                      <span>Unpublish</span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4" />
+                      <span>Publish</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="submit"
+                  form="chapter-form"
+                  disabled={updateChapterMutation.isPending || isPreview}
+                  className="inline-flex items-center gap-2"
+                >
+                  {updateChapterMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>Save Changes</span>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
 
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <div
-                      className={cn(
-                        "min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm",
-                        "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring"
-                      )}
-                    >
-                      <Toolbar editor={editor} />
-                      <div className="p-3">
-                        <EditorContent
-                          editor={editor}
-                          className="min-h-[460px]"
-                        />
-                      </div>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        {isPreview ? (
+          <>
+            <ChapterView
+              title={form.getValues("title")}
+              content={form.getValues("content")}
             />
-          </form>
-        </Form>
-      )}
-    </div>
+            <hr className="my-8" />
+            <div className="flex justify-end mt-8">
+              <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
+            </div>
+          </>
+        ) : (
+          <Form {...form}>
+            <form
+              id="chapter-form"
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-8"
+            >
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Chapter Title"
+                        disabled={isPreview}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div
+                        className={cn(
+                          "min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm",
+                          "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring"
+                        )}
+                      >
+                        <Toolbar editor={editor} />
+                        <div className="p-3">
+                          <EditorContent
+                            editor={editor}
+                            className="min-h-[460px]"
+                          />
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        )}
+      </div>
+    </>
   );
 }

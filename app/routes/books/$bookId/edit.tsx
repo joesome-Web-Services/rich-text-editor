@@ -148,7 +148,7 @@ function EditBook() {
   }
 
   return (
-    <main className="container mx-auto px-4 pb-16">
+    <main className="mt-8 container mx-auto px-4 pb-16">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Edit Book</h1>
 

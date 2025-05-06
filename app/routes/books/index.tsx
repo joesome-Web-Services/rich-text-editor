@@ -5,9 +5,8 @@ import { Badge } from "~/components/ui/badge";
 import { isAdminFn } from "~/fn/auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
-import { books, chapters } from "~/db/schema";
+import { chapters } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { useQuery } from "@tanstack/react-query";
 
 const getBooksFn = createServerFn().handler(async () => {
   const allBooks = await database.query.books.findMany({

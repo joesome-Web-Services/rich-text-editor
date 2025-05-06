@@ -119,7 +119,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="min-h-screen flex flex-col">
         <Header />
         <Toaster />
-        <main className="pt-32 pb-16 min-h-screen">{children}</main>
+        <main className="pt-[80px] pb-16 min-h-screen">{children}</main>
         <FooterSection />
         <TanStackRouterDevtools position="bottom-right" />
         <ReactQueryDevtools buttonPosition="bottom-left" />

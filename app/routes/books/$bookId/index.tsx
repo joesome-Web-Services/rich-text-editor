@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { PlusCircle, Loader2, Pencil } from "lucide-react";
+import { PlusCircle, Loader2, Pencil, BookOpen } from "lucide-react";
 import { adminMiddleware } from "~/lib/auth";
 import { useToast } from "~/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -139,7 +139,7 @@ function RouteComponent() {
   const { book, chapters = [] } = data;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="pt-8 max-w-5xl mx-auto">
       <div className="flex gap-8 mb-8">
         {/* Book Cover Image */}
         <div className="flex-shrink-0">
@@ -152,7 +152,7 @@ function RouteComponent() {
 
         {/* Book Info */}
         <div className="flex-grow">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-start justify-between mb-4">
             <div className="space-y-2">
               <div className="flex items-baseline gap-4">
                 <h1 className="text-4xl font-bold">{book.title}</h1>
@@ -180,11 +180,7 @@ function RouteComponent() {
 
           {/* Start Reading Button */}
           {chapters.length > 0 && (
-            <Button
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              asChild
-            >
+            <Button size="lg" asChild>
               <Link
                 to="/books/$bookId/chapters/$chapterId"
                 params={{
@@ -192,6 +188,7 @@ function RouteComponent() {
                   chapterId: chapters[0].id.toString(),
                 }}
               >
+                <BookOpen className="w-4 h-4 mr-2" />
                 Start Reading
               </Link>
             </Button>
@@ -199,13 +196,14 @@ function RouteComponent() {
         </div>
       </div>
 
+      <hr className="my-8 border-gray-200" />
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Chapters</h2>
           {isAdmin && (
             <Button
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2"
               onClick={() => createChapterMutation.mutate()}
               disabled={createChapterMutation.isPending}
             >
