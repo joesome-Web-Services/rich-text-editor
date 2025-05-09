@@ -44,8 +44,6 @@ import {
   Globe,
   EyeOff,
   ArrowLeft,
-  BookOpen,
-  ArrowRight,
 } from "lucide-react";
 import { Toggle } from "~/components/ui/toggle";
 import { cn } from "~/lib/utils";
@@ -59,6 +57,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Link as RouterLink } from "@tanstack/react-router";
+import { Comments } from "./-components/comments";
 
 const formSchema = z.object({
   title: z
@@ -287,9 +286,11 @@ function Toolbar({ editor }: ToolbarProps) {
 interface ChapterViewProps {
   title: string;
   content: string;
+  bookId: string;
+  chapterId: string;
 }
 
-function ChapterView({ title, content }: ChapterViewProps) {
+function ChapterView({ title, content, bookId, chapterId }: ChapterViewProps) {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-8 text-center">{title}</h1>
@@ -298,6 +299,10 @@ function ChapterView({ title, content }: ChapterViewProps) {
         className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl"
         dangerouslySetInnerHTML={{ __html: content }}
       />
+      <div className="flex justify-end mt-8">
+        <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
+      </div>
+      <hr className="border-gray-400 my-12 max-w-2xl mx-auto" />
     </div>
   );
 }
@@ -552,11 +557,13 @@ function RouteComponent() {
   if (!isAdmin) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <ChapterView title={chapter.title} content={chapter.content} />
-        <hr className="my-8" />
-        <div className="flex justify-end mt-8">
-          <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
-        </div>
+        <ChapterView
+          title={chapter.title}
+          content={chapter.content}
+          bookId={bookId}
+          chapterId={chapterId}
+        />
+        <Comments />
       </div>
     );
   }
@@ -585,7 +592,7 @@ function RouteComponent() {
         </RouterLink>
       </div>
 
-      <div className="max-w-5xl mx-auto pt-12">
+      <div className="max-w-3xl mx-auto pt-12">
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div className="flex gap-2 items-center">
@@ -657,11 +664,9 @@ function RouteComponent() {
             <ChapterView
               title={form.getValues("title")}
               content={form.getValues("content")}
+              bookId={bookId}
+              chapterId={chapterId}
             />
-            <hr className="my-8" />
-            <div className="flex justify-end mt-8">
-              <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
-            </div>
           </>
         ) : (
           <Form {...form}>
@@ -715,6 +720,8 @@ function RouteComponent() {
             </form>
           </Form>
         )}
+
+        <Comments />
       </div>
     </>
   );

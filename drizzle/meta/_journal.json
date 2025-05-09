@@ -15,6 +15,13 @@
       "when": 1746488579112,
       "tag": "0001_outstanding_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746496398894,
+      "tag": "0002_sleepy_zarek",
+      "breakpoints": true
     }
   ]
 }

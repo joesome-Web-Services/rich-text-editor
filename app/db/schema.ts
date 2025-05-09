@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 const PREFIX = "app";
 
@@ -20,18 +21,6 @@ export const users = tableCreator("user", {
   isAdmin: boolean("isAdmin").notNull().default(false),
 });
 
-export const accounts = tableCreator(
-  "accounts",
-  {
-    id: serial("id").primaryKey(),
-    userId: serial("userId")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    googleId: text("googleId").unique(),
-  },
-  (table) => [index("user_id_google_id_idx").on(table.userId, table.googleId)]
-);
-
 export const profiles = tableCreator("profile", {
   id: serial("id").primaryKey(),
   userId: serial("userId")
@@ -43,6 +32,33 @@ export const profiles = tableCreator("profile", {
   image: text("image"),
   bio: text("bio").notNull().default(""),
 });
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  profile: one(profiles, {
+    fields: [users.id],
+    references: [profiles.userId],
+  }),
+  comments: many(comments),
+}));
+
+export const profilesRelations = relations(profiles, ({ one }) => ({
+  user: one(users, {
+    fields: [profiles.userId],
+    references: [users.id],
+  }),
+}));
+
+export const accounts = tableCreator(
+  "accounts",
+  {
+    id: serial("id").primaryKey(),
+    userId: serial("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    googleId: text("googleId").unique(),
+  },
+  (table) => [index("user_id_google_id_idx").on(table.userId, table.googleId)]
+);
 
 export const sessions = tableCreator(
   "session",
@@ -80,8 +96,33 @@ export const chapters = tableCreator("chapter", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const comments = tableCreator("comment", {
+  id: serial("id").primaryKey(),
+  chapterId: serial("chapterId")
+    .notNull()
+    .references(() => chapters.id, { onDelete: "cascade" }),
+  userId: serial("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  user: one(users, {
+    fields: [comments.userId],
+    references: [users.id],
+  }),
+  chapter: one(chapters, {
+    fields: [comments.chapterId],
+    references: [chapters.id],
+  }),
+}));
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Book = typeof books.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
