@@ -51,13 +51,6 @@ function RouteComponent() {
 
         {/* Content container */}
         <div className="relative text-center space-y-6 max-w-2xl mx-auto">
-          <Badge
-            variant="secondary"
-            className="text-sm font-medium px-4 py-1.5"
-          >
-            Your Writing Journey
-          </Badge>
-
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
             No Books Yet
           </h1>
@@ -91,11 +84,8 @@ function RouteComponent() {
     <main className="container mx-auto px-4 py-16">
       <div className="flex justify-between items-center mb-12">
         <div>
-          <Badge variant="secondary" className="mb-4">
-            Your Writing Journey
-          </Badge>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-            Available Books
+            My Books
           </h1>
         </div>
         {isAdmin && (
@@ -121,31 +111,21 @@ function RouteComponent() {
             <h2 className="text-2xl font-bold mb-2">{book.title}</h2>
             <p className="text-gray-600 flex-grow mb-6">{book.description}</p>
             <div className="flex justify-between items-center">
-              <Link
-                to="/books/$bookId"
-                params={{ bookId: book.id.toString() }}
-                className="text-blue-600 hover:text-blue-800 font-medium"
+              <Button
+                asChild
+                variant="secondary"
+                className="inline-flex items-center gap-2"
               >
-                View All Chapters
-              </Link>
-              {book.firstChapter && (
-                <Button
-                  asChild
-                  variant="secondary"
-                  className="inline-flex items-center gap-2"
+                <Link
+                  to="/books/$bookId"
+                  params={{
+                    bookId: book.id.toString(),
+                  }}
                 >
-                  <Link
-                    to="/books/$bookId/chapters/$chapterId"
-                    params={{
-                      bookId: book.id.toString(),
-                      chapterId: book.firstChapter.id.toString(),
-                    }}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>Start Reading</span>
-                  </Link>
-                </Button>
-              )}
+                  <BookOpen className="w-4 h-4" />
+                  <span>View Book</span>
+                </Link>
+              </Button>
             </div>
           </div>
         ))}
