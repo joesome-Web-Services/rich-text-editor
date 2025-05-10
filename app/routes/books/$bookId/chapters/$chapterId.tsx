@@ -1,22 +1,8 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { database } from "~/db";
-import { chapters, books } from "~/db/schema";
-import { eq, asc } from "drizzle-orm";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "~/components/ui/form";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { useToast } from "~/hooks/use-toast";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
@@ -37,27 +23,26 @@ import {
   Heading3,
   Code,
   Loader2,
-  Save,
-  Eye,
-  Edit,
-  ChevronDown,
   Globe,
   EyeOff,
   ArrowLeft,
+  Check,
 } from "lucide-react";
 import { Toggle } from "~/components/ui/toggle";
 import { cn } from "~/lib/utils";
-import { adminMiddleware } from "~/lib/auth";
 import { isAdminFn } from "~/fn/auth";
-import { useState, useEffect } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+import { useState, useEffect, useRef } from "react";
 import { Link as RouterLink } from "@tanstack/react-router";
 import { Comments } from "./-components/comments";
+import { formatDistanceToNow } from "date-fns";
+import {
+  getBookChaptersFn,
+  getBookFn,
+  getChapterFn,
+  togglePublishFn,
+  updateChapterFn,
+} from "./-funs";
+import { ChapterNavigation } from "./-components/chapter-navigation";
 
 const formSchema = z.object({
   title: z
@@ -68,102 +53,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-const getChapterFn = createServerFn()
-  .validator(
-    z.object({
-      chapterId: z.string(),
-    })
-  )
-  .handler(async ({ data: { chapterId } }) => {
-    const chapter = await database.query.chapters.findFirst({
-      where: eq(chapters.id, parseInt(chapterId)),
-    });
-
-    if (!chapter) {
-      throw new Error("Chapter not found");
-    }
-
-    return { chapter };
-  });
-
-const updateChapterFn = createServerFn()
-  .middleware([adminMiddleware])
-  .validator(
-    z.object({
-      chapterId: z.string(),
-      title: z.string(),
-      content: z.string(),
-    })
-  )
-  .handler(async ({ data }) => {
-    const [chapter] = await database
-      .update(chapters)
-      .set({
-        title: data.title,
-        content: data.content,
-      })
-      .where(eq(chapters.id, parseInt(data.chapterId)))
-      .returning();
-
-    return { chapter };
-  });
-
-const getBookChaptersFn = createServerFn()
-  .validator(
-    z.object({
-      bookId: z.string(),
-    })
-  )
-  .handler(async ({ data: { bookId } }) => {
-    const bookChapters = await database.query.chapters.findMany({
-      where: eq(chapters.bookId, parseInt(bookId)),
-      orderBy: asc(chapters.id),
-    });
-
-    return { chapters: bookChapters };
-  });
-
-const togglePublishFn = createServerFn()
-  .middleware([adminMiddleware])
-  .validator(
-    z.object({
-      chapterId: z.string(),
-      isPublished: z.boolean(),
-    })
-  )
-  .handler(async ({ data }) => {
-    const [chapter] = await database
-      .update(chapters)
-      .set({
-        isPublished: data.isPublished,
-      })
-      .where(eq(chapters.id, parseInt(data.chapterId)))
-      .returning();
-
-    return { chapter };
-  });
-
-const getBookFn = createServerFn()
-  .validator(
-    z.object({
-      bookId: z.string(),
-    })
-  )
-  .handler(async ({ data: { bookId } }) => {
-    const book = await database.query.books.findFirst({
-      where: eq(books.id, parseInt(bookId)),
-      with: {
-        coverImage: true,
-      },
-    });
-
-    if (!book) {
-      throw new Error("Book not found");
-    }
-
-    return { book };
-  });
 
 interface ToolbarProps {
   editor: Editor | null;
@@ -286,76 +175,6 @@ function Toolbar({ editor }: ToolbarProps) {
   );
 }
 
-interface ChapterViewProps {
-  title: string;
-  content: string;
-  bookId: string;
-  chapterId: string;
-}
-
-function ChapterView({ title, content, bookId, chapterId }: ChapterViewProps) {
-  return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 text-center">{title}</h1>
-      <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
-      <div
-        className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-      <div className="flex justify-end mt-8">
-        <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
-      </div>
-    </div>
-  );
-}
-
-interface ChapterNavigationProps {
-  bookId: string;
-  currentChapterId: string;
-}
-
-function ChapterNavigation({
-  bookId,
-  currentChapterId,
-}: ChapterNavigationProps) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["book-chapters", bookId],
-    queryFn: () => getBookChaptersFn({ data: { bookId } }),
-  });
-
-  if (isLoading || !data) return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <span>Chapters</span>
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[200px]">
-        {data.chapters.map((chapter, index) => (
-          <DropdownMenuItem key={chapter.id} asChild>
-            <RouterLink
-              to="/books/$bookId/chapters/$chapterId"
-              params={{
-                bookId: bookId,
-                chapterId: chapter.id.toString(),
-              }}
-              className={cn(
-                "w-full truncate",
-                parseInt(currentChapterId) === chapter.id && "font-bold"
-              )}
-            >
-              {index + 1}. {chapter.title}
-            </RouterLink>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 interface NextChapterButtonProps {
   bookId: string;
   currentChapterId: string;
@@ -433,7 +252,10 @@ function RouteComponent() {
   const { isAdmin } = Route.useLoaderData();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isPreview, setIsPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
   const { data: bookData } = useQuery({
     queryKey: ["book", bookId],
@@ -461,6 +283,7 @@ function RouteComponent() {
         title: data.chapter.title,
         content: data.chapter.content,
       });
+      setLastSaved(new Date());
     }
   }, [data, form]);
 
@@ -475,10 +298,11 @@ function RouteComponent() {
       }),
     ],
     content: "",
-    editable: isAdmin && !isPreview,
+    editable: isAdmin,
     onUpdate: ({ editor }) => {
-      if (isAdmin && !isPreview) {
+      if (isAdmin) {
         form.setValue("content", editor.getHTML(), { shouldValidate: true });
+        debounceSave();
       }
     },
     editorProps: {
@@ -507,10 +331,8 @@ function RouteComponent() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
-      toast({
-        title: "Success",
-        description: "Chapter updated successfully!",
-      });
+      setIsSaving(false);
+      setLastSaved(new Date());
     },
     onError: (error) => {
       console.error("Failed to update chapter:", error);
@@ -519,8 +341,29 @@ function RouteComponent() {
         description: "Failed to update chapter. Please try again.",
         variant: "destructive",
       });
+      setIsSaving(false);
     },
   });
+
+  const debounceSave = () => {
+    setIsSaving(true);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      const values = form.getValues();
+      updateChapterMutation.mutate(values);
+    }, 3000);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const togglePublishMutation = useMutation({
     mutationFn: (isPublished: boolean) =>
@@ -575,26 +418,6 @@ function RouteComponent() {
 
   const { chapter } = data;
 
-  if (!isAdmin) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="bg-white shadow-lg rounded-xl px-6 py-10">
-          <ChapterView
-            title={chapter.title}
-            content={chapter.content}
-            bookId={bookId}
-            chapterId={chapterId}
-          />
-          <Comments />
-        </div>
-      </div>
-    );
-  }
-
-  const onSubmit = (values: FormValues) => {
-    updateChapterMutation.mutate(values);
-  };
-
   return (
     <>
       <div className="pt-4 bg-white border-b border-gray-200 pb-4 text-center flex gap-4 justify-center items-center">
@@ -632,141 +455,132 @@ function RouteComponent() {
               }
               right={
                 isAdmin && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsPreview(!isPreview)}
-                      className="inline-flex items-center gap-2"
-                    >
-                      {isPreview ? (
-                        <>
-                          <Edit className="h-4 w-4" />
-                          <span>Edit</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-4 w-4" />
-                          <span>Preview</span>
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() =>
-                        togglePublishMutation.mutate(!data?.chapter.isPublished)
-                      }
-                      disabled={togglePublishMutation.isPending}
-                      className="inline-flex items-center gap-2"
-                    >
-                      {togglePublishMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : data?.chapter.isPublished ? (
-                        <>
-                          <EyeOff className="h-4 w-4" />
-                          <span>Unpublish</span>
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="h-4 w-4" />
-                          <span>Publish</span>
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="submit"
-                      form="chapter-form"
-                      disabled={updateChapterMutation.isPending || isPreview}
-                      className="inline-flex items-center gap-2"
-                    >
-                      {updateChapterMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4" />
-                      )}
-                      <span>Save Changes</span>
-                    </Button>
-                  </>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      togglePublishMutation.mutate(!data?.chapter.isPublished)
+                    }
+                    disabled={togglePublishMutation.isPending}
+                    className="inline-flex items-center gap-2"
+                  >
+                    {togglePublishMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : data?.chapter.isPublished ? (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        <span>Unpublish</span>
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="h-4 w-4" />
+                        <span>Publish</span>
+                      </>
+                    )}
+                  </Button>
                 )
               }
             />
             <div className="px-6 py-10">
-              {isPreview ? (
-                <ChapterView
-                  title={form.getValues("title")}
-                  content={form.getValues("content")}
-                  bookId={bookId}
-                  chapterId={chapterId}
-                />
-              ) : (
-                <Form {...form}>
-                  <form
-                    id="chapter-form"
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-8"
+              <div className="max-w-3xl mx-auto">
+                {isAdmin && isEditingTitle ? (
+                  <input
+                    {...form.register("title")}
+                    type="text"
+                    spellCheck={false}
+                    className="text-3xl font-bold mb-8 text-center w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0 m-0 block"
+                    style={{
+                      fontFamily: "inherit",
+                      lineHeight: "1.2",
+                      letterSpacing: "inherit",
+                      appearance: "none",
+                      MozAppearance: "none",
+                      WebkitAppearance: "none",
+                      marginBottom: "2rem",
+                      padding: 0,
+                      height: "auto",
+                      minHeight: "unset",
+                    }}
+                    onBlur={() => {
+                      setIsEditingTitle(false);
+                      debounceSave();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setIsEditingTitle(false);
+                        debounceSave();
+                      }
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <h1
+                    className={cn(
+                      "text-3xl font-bold mb-8 text-center",
+                      isAdmin &&
+                        "cursor-pointer hover:bg-gray-50 rounded-md transition-colors"
+                    )}
+                    onClick={() => isAdmin && setIsEditingTitle(true)}
                   >
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Chapter Title</FormLabel>
-                          <FormDescription>
-                            The title of your chapter. This will be displayed at
-                            the top of the chapter.
-                          </FormDescription>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Enter chapter title"
-                              disabled={isPreview}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                    {form.watch("title")}
+                  </h1>
+                )}
+                <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
+                <div
+                  className={cn(
+                    "prose prose-sm sm:prose lg:prose-lg xl:prose-xl",
+                    isAdmin && "group"
+                  )}
+                >
+                  {isAdmin ? (
+                    <div className="min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm">
+                      <div className="opacity-0 group-focus-within:opacity-100 transition-opacity">
+                        <Toolbar editor={editor} />
+                      </div>
+                      <div className="p-3">
+                        <EditorContent
+                          editor={editor}
+                          className="min-h-[460px]"
+                          aria-label="Chapter content editor"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      dangerouslySetInnerHTML={{ __html: chapter.content }}
                     />
-                    <FormField
-                      control={form.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Chapter Content</FormLabel>
-                          <FormDescription>
-                            Write your chapter content here. Use the toolbar
-                            above to format your text.
-                          </FormDescription>
-                          <FormControl>
-                            <div
-                              className={cn(
-                                "min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm",
-                                "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring"
-                              )}
-                            >
-                              <Toolbar editor={editor} />
-                              <div className="p-3">
-                                <EditorContent
-                                  editor={editor}
-                                  className="min-h-[460px]"
-                                  aria-label="Chapter content editor"
-                                />
-                              </div>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-              )}
+                  )}
+                </div>
+                <div className="flex justify-end mt-8">
+                  <NextChapterButton
+                    bookId={bookId}
+                    currentChapterId={chapterId}
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div className="bg-white shadow-lg rounded-xl px-6 py-10">
             <Comments />
           </div>
         </div>
+      </div>
+
+      {/* Save Status Indicator */}
+      <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-2">
+        {isSaving ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Saving...</span>
+          </>
+        ) : lastSaved ? (
+          <>
+            <Check className="h-4 w-4 text-green-500" />
+            <span>
+              Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
+            </span>
+          </>
+        ) : null}
       </div>
     </>
   );

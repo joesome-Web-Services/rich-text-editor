@@ -7,11 +7,22 @@ import { cn } from "~/lib/utils";
 import { useAuth } from "~/hooks/use-auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
+import { z } from "zod";
 
-export const getBooksFn = createServerFn().handler(async () => {
-  const books = await database.query.books.findMany();
-  return books;
-});
+export const getBooksFn = createServerFn()
+  .validator(
+    z.object({
+      bookId: z.string(),
+    })
+  )
+  .handler(async ({ data: { bookId } }) => {
+    const books = await database.query.books.findMany({
+      with: {
+        coverImage: true,
+      },
+    });
+    return books;
+  });
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);

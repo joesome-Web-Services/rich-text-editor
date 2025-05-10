@@ -12,6 +12,7 @@ import { useToast } from "~/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { isAdminFn } from "~/fn/auth";
 import { format } from "date-fns";
+import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 
 const getBookWithChaptersFn = createServerFn()
   .validator(z.object({ bookId: z.string() }))
@@ -211,9 +212,9 @@ function RouteComponent() {
 
       <hr className="my-8 border-gray-200" />
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Chapters</h2>
+      <Card className="mb-8">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <CardTitle className="text-2xl font-semibold">Chapters</CardTitle>
           {isAdmin && (
             <Button
               size="sm"
@@ -228,34 +229,36 @@ function RouteComponent() {
               <span>Add Chapter</span>
             </Button>
           )}
-        </div>
-        {chapters.length === 0 ? (
-          <p className="text-gray-500">No chapters available yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {chapters.map((chapter: Chapter, index: number) => (
-              <Link
-                key={chapter.id}
-                to="/books/$bookId/chapters/$chapterId"
-                params={{
-                  bookId: book.id.toString(),
-                  chapterId: chapter.id.toString(),
-                }}
-                className="block p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">
-                    {index + 1}. {chapter.title}
+        </CardHeader>
+        <CardContent>
+          {chapters.length === 0 ? (
+            <p className="text-gray-500">No chapters available yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {chapters.map((chapter: Chapter, index: number) => (
+                <Link
+                  key={chapter.id}
+                  to="/books/$bookId/chapters/$chapterId"
+                  params={{
+                    bookId: book.id.toString(),
+                    chapterId: chapter.id.toString(),
+                  }}
+                  className="block p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">
+                      {index + 1}. {chapter.title}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {format(new Date(chapter.createdAt), "MMM d, yyyy")}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {format(new Date(chapter.createdAt), "MMM d, yyyy")}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
