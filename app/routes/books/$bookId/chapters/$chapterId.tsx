@@ -29,10 +29,8 @@ import {
   Check,
 } from "lucide-react";
 import { Toggle } from "~/components/ui/toggle";
-import { cn } from "~/lib/utils";
 import { isAdminFn } from "~/fn/auth";
 import { useState, useEffect, useRef } from "react";
-import { Link as RouterLink } from "@tanstack/react-router";
 import { Comments } from "./-components/comments";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -45,6 +43,9 @@ import {
 import { ChapterNavigation } from "./-components/chapter-navigation";
 import { BookTitle } from "./-components/book-title";
 import { ChapterTitle } from "./-components/chapter.title";
+import { ContentEditor } from "./-components/content-editor";
+import { NextChapterButton } from "./-components/next-chapter-button";
+import { SaveStatus } from "./-components/save-status";
 
 const SAVE_DELAY = 2000;
 
@@ -57,173 +58,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-interface ToolbarProps {
-  editor: Editor | null;
-}
-
-function Toolbar({ editor }: ToolbarProps) {
-  if (!editor) {
-    return null;
-  }
-
-  const addLink = () => {
-    const url = window.prompt("URL");
-    if (url) {
-      editor.chain().focus().setLink({ href: url }).run();
-    }
-  };
-
-  return (
-    <div className="border border-input bg-transparent rounded-t-md p-1 flex flex-wrap gap-1">
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("heading", { level: 1 })}
-        onPressedChange={() =>
-          editor.chain().focus().toggleHeading({ level: 1 }).run()
-        }
-      >
-        <Heading1 className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("heading", { level: 2 })}
-        onPressedChange={() =>
-          editor.chain().focus().toggleHeading({ level: 2 }).run()
-        }
-      >
-        <Heading2 className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("heading", { level: 3 })}
-        onPressedChange={() =>
-          editor.chain().focus().toggleHeading({ level: 3 }).run()
-        }
-      >
-        <Heading3 className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("bold")}
-        onPressedChange={() => editor.chain().focus().toggleBold().run()}
-      >
-        <Bold className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("italic")}
-        onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-      >
-        <Italic className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("strike")}
-        onPressedChange={() => editor.chain().focus().toggleStrike().run()}
-      >
-        <Strikethrough className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("code")}
-        onPressedChange={() => editor.chain().focus().toggleCode().run()}
-      >
-        <Code className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("bulletList")}
-        onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
-      >
-        <List className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("orderedList")}
-        onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
-      >
-        <ListOrdered className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("blockquote")}
-        onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
-      >
-        <Quote className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("link")}
-        onPressedChange={addLink}
-      >
-        <LinkIcon className="h-4 w-4" />
-      </Toggle>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
-      >
-        <Undo className="h-4 w-4" />
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
-      >
-        <Redo className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-interface NextChapterButtonProps {
-  bookId: string;
-  currentChapterId: string;
-}
-
-function NextChapterButton({
-  bookId,
-  currentChapterId,
-}: NextChapterButtonProps) {
-  const { data } = useQuery({
-    queryKey: ["book-chapters", bookId],
-    queryFn: () => getBookChaptersFn({ data: { bookId } }),
-  });
-
-  const router = useRouter();
-
-  if (!data?.chapters) return null;
-
-  const currentIndex = data.chapters.findIndex(
-    (chapter) => chapter.id === parseInt(currentChapterId)
-  );
-
-  if (currentIndex === -1 || currentIndex === data.chapters.length - 1)
-    return null;
-
-  const nextChapter = data.chapters[currentIndex + 1];
-
-  return (
-    <Button
-      className="gap-2 w-full max-w-2xl mx-auto"
-      onClick={() => {
-        router.navigate({
-          to: "/books/$bookId/chapters/$chapterId",
-          params: {
-            bookId: bookId,
-            chapterId: nextChapter.id.toString(),
-          },
-        });
-      }}
-    >
-      <span>Continue to Next Chapter</span>
-      <ArrowLeft className="h-4 w-4 rotate-180" />
-    </Button>
-  );
-}
 
 function ChapterPanel({
   children,
@@ -258,13 +92,7 @@ function RouteComponent() {
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
-
-  const { data: bookData } = useQuery({
-    queryKey: ["book", bookId],
-    queryFn: () => getBookFn({ data: { bookId } }),
-  });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["chapter", chapterId],
@@ -291,38 +119,25 @@ function RouteComponent() {
     }
   }, [data, form]);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-primary underline underline-offset-4",
-        },
-      }),
-    ],
-    content: "",
-    editable: isAdmin,
-    onUpdate: ({ editor }) => {
-      if (isAdmin) {
-        form.setValue("content", editor.getHTML(), { shouldValidate: true });
-        debounceSave();
-      }
-    },
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none max-w-none",
-      },
-    },
-  });
-
-  // Update editor content when data is loaded
-  useEffect(() => {
-    if (editor && data?.chapter) {
-      editor.commands.setContent(data.chapter.content);
+  const debounceSave = () => {
+    setIsSaving(true);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  }, [editor, data]);
+    saveTimeoutRef.current = setTimeout(() => {
+      const values = form.getValues();
+      updateChapterMutation.mutate(values);
+    }, SAVE_DELAY);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const updateChapterMutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -348,26 +163,6 @@ function RouteComponent() {
       setIsSaving(false);
     },
   });
-
-  const debounceSave = () => {
-    setIsSaving(true);
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      const values = form.getValues();
-      updateChapterMutation.mutate(values);
-    }, SAVE_DELAY);
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const togglePublishMutation = useMutation({
     mutationFn: (isPublished: boolean) =>
@@ -473,32 +268,18 @@ function RouteComponent() {
                     debounceSave();
                   }}
                 />
+
                 <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
-                <div
-                  className={cn(
-                    "prose prose-sm sm:prose lg:prose-lg xl:prose-xl",
-                    isAdmin && "group"
-                  )}
-                >
-                  {isAdmin ? (
-                    <div className="min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm">
-                      <div className="opacity-0 group-focus-within:opacity-100 transition-opacity">
-                        <Toolbar editor={editor} />
-                      </div>
-                      <div className="p-3">
-                        <EditorContent
-                          editor={editor}
-                          className="min-h-[460px]"
-                          aria-label="Chapter content editor"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      dangerouslySetInnerHTML={{ __html: chapter.content }}
-                    />
-                  )}
-                </div>
+
+                <ContentEditor
+                  isAdmin={isAdmin}
+                  content={chapter.content}
+                  onContentChange={(content) => {
+                    form.setValue("content", content, { shouldValidate: true });
+                    debounceSave();
+                  }}
+                />
+
                 <div className="flex justify-end mt-8">
                   <NextChapterButton
                     bookId={bookId}
@@ -513,23 +294,7 @@ function RouteComponent() {
           </div>
         </div>
       </div>
-
-      {/* Save Status Indicator */}
-      <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-2">
-        {isSaving ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Saving...</span>
-          </>
-        ) : lastSaved ? (
-          <>
-            <Check className="h-4 w-4 text-green-500" />
-            <span>
-              Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
-            </span>
-          </>
-        ) : null}
-      </div>
+      <SaveStatus isSaving={isSaving} lastSaved={lastSaved} />
     </>
   );
 }

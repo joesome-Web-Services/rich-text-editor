@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { books, chapters, type Book, type Chapter } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
@@ -28,8 +28,11 @@ const getBookWithChaptersFn = createServerFn()
       throw new Error("Book not found");
     }
 
+    const isAdmin = await isAdminFn();
     const bookChapters = await database.query.chapters.findMany({
-      where: eq(chapters.bookId, book.id),
+      where: isAdmin
+        ? eq(chapters.bookId, book.id)
+        : and(eq(chapters.bookId, book.id), eq(chapters.isPublished, true)),
       orderBy: chapters.order,
     });
 
@@ -164,7 +167,7 @@ function RouteComponent() {
             <div className="flex items-start justify-between mb-4">
               <div className="space-y-2">
                 <div className="flex items-baseline gap-4">
-                  <h1 className="text-4xl font-bold text-gray-900">
+                  <h1 className="text-4xl font-serif text-gray-900">
                     {book.title}
                   </h1>
                 </div>
@@ -243,11 +246,20 @@ function RouteComponent() {
                     bookId: book.id.toString(),
                     chapterId: chapter.id.toString(),
                   }}
-                  className="block p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                  className={`block p-4 rounded-lg border transition-colors ${
+                    chapter.isPublished
+                      ? "border-gray-200 hover:border-red-500 hover:bg-red-50"
+                      : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="font-medium">
                       {index + 1}. {chapter.title}
+                      {!chapter.isPublished && (
+                        <span className="ml-2 text-xs text-gray-600 bg-gray-200 px-2 py-0.5 rounded">
+                          Draft
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500">
                       {format(new Date(chapter.createdAt), "MMM d, yyyy")}

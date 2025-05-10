@@ -86,8 +86,10 @@ function RouteComponent() {
     <main className="max-w-5xl mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-12">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-            My Books
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-transparent bg-clip-text animate-gradient relative group">
+            <span className="text-gray-500 text-lg">Written by</span>{" "}
+            <span className="font-serif">ViennaMata</span>
+            <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-red-500 via-red-600 to-red-700 transform scale-x-0 transition-transform group-hover:scale-x-100"></span>
           </h1>
         </div>
         {isAdmin && (
