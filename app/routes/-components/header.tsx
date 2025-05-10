@@ -1,19 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "../../components/ui/button";
-import { Menu, ChevronDown } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "../../components/ui/sheet";
 import { useState } from "react";
 import { cn } from "~/lib/utils";
 import { useAuth } from "~/hooks/use-auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
-import { useQuery } from "@tanstack/react-query";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 
 export const getBooksFn = createServerFn().handler(async () => {
   const books = await database.query.books.findMany();
@@ -23,11 +16,6 @@ export const getBooksFn = createServerFn().handler(async () => {
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuth();
-
-  const { data: books } = useQuery({
-    queryKey: ["books"],
-    queryFn: getBooksFn,
-  });
 
   return (
     <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-b border-rose-100 z-50">
@@ -51,6 +39,16 @@ export function Header() {
               Home
             </Link>
             <Link
+              to="/books"
+              className={cn(
+                "hidden md:flex transition-colors",
+                "text-gray-600 hover:text-gray-800 font-light"
+              )}
+              activeProps={{ className: "text-rose-600" }}
+            >
+              My Books
+            </Link>
+            <Link
               to="/about"
               className={cn(
                 "hidden md:flex transition-colors",
@@ -60,32 +58,6 @@ export function Header() {
             >
               About
             </Link>
-            {books && books.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="hidden md:flex items-center gap-2 text-gray-600 hover:text-gray-800 font-light"
-                  >
-                    Read
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {books.map((book) => (
-                    <DropdownMenuItem key={book.id} asChild>
-                      <Link
-                        to="/books/$bookId"
-                        params={{ bookId: book.id.toString() }}
-                        className="w-full flex items-center"
-                      >
-                        {book.title}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
 
           {/* Desktop Menu */}
@@ -141,19 +113,7 @@ export function Header() {
                   >
                     About
                   </Link>
-                  {books &&
-                    books.length > 0 &&
-                    books.map((book) => (
-                      <Link
-                        key={book.id}
-                        to="/books/$bookId"
-                        params={{ bookId: book.id.toString() }}
-                        className="flex items-center py-2 text-lg font-light text-gray-800 hover:text-rose-600 transition-colors"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        {book.title}
-                      </Link>
-                    ))}
+
                   {user ? (
                     <a
                       href="/api/logout"

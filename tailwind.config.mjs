@@ -7,7 +7,7 @@ export default {
     extend: {
       colors: {
         border: "#E2E8F0",
-        input: "#EDF2F7",
+        input: "#AAA",
         ring: "#CBD5E1",
         background: "#FFFFFF",
         foreground: "#1A202C",

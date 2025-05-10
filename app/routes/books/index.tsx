@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { PlusCircle, BookOpen } from "lucide-react";
-import { Badge } from "~/components/ui/badge";
 import { isAdminFn } from "~/fn/auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
@@ -11,6 +10,9 @@ import { eq } from "drizzle-orm";
 const getBooksFn = createServerFn().handler(async () => {
   const allBooks = await database.query.books.findMany({
     orderBy: (books, { desc }) => [desc(books.createdAt)],
+    with: {
+      coverImage: true,
+    },
   });
 
   // For each book, get its first chapter (lowest order)
@@ -81,7 +83,7 @@ function RouteComponent() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-16">
+    <main className="max-w-5xl mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-12">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
@@ -89,11 +91,7 @@ function RouteComponent() {
           </h1>
         </div>
         {isAdmin && (
-          <Button
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 relative font-medium inline-flex items-center gap-2"
-            asChild
-          >
+          <Button size="lg" asChild>
             <Link to="/books/create">
               <PlusCircle className="w-5 h-5" aria-hidden="true" />
               <span>Create New Book</span>
@@ -102,32 +100,34 @@ function RouteComponent() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {books.map((book) => (
-          <div
+          <Link
             key={book.id}
-            className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col"
+            to="/books/$bookId"
+            params={{
+              bookId: book.id.toString(),
+            }}
+            className="block"
           >
-            <h2 className="text-2xl font-bold mb-2">{book.title}</h2>
-            <p className="text-gray-600 flex-grow mb-6">{book.description}</p>
-            <div className="flex justify-between items-center">
-              <Button
-                asChild
-                variant="secondary"
-                className="inline-flex items-center gap-2"
-              >
-                <Link
-                  to="/books/$bookId"
-                  params={{
-                    bookId: book.id.toString(),
-                  }}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>View Book</span>
-                </Link>
-              </Button>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] p-6 flex gap-6">
+              {book.coverImage?.data ? (
+                <div className="w-48 h-64 flex-shrink-0">
+                  <img
+                    src={book.coverImage.data}
+                    alt={`Cover for ${book.title}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </div>
+              ) : (
+                <div className="w-48 h-64 flex-shrink-0 bg-gray-200 rounded-lg"></div>
+              )}
+              <div className="flex flex-col flex-grow">
+                <h2 className="text-2xl font-bold mb-2">{book.title}</h2>
+                <p className="text-gray-600 flex-grow">{book.description}</p>
+              </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </main>

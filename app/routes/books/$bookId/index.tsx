@@ -18,6 +18,9 @@ const getBookWithChaptersFn = createServerFn()
   .handler(async ({ data: { bookId } }) => {
     const book = await database.query.books.findFirst({
       where: eq(books.id, parseInt(bookId)),
+      with: {
+        coverImage: true,
+      },
     });
 
     if (!book) {
@@ -53,7 +56,7 @@ const createChapterFn = createServerFn()
       .values({
         bookId: parseInt(data.bookId),
         title: "New Chapter",
-        content: "<p>Start writing your chapter here...</p>",
+        content: "",
         order: nextOrder,
       })
       .returning();
@@ -140,59 +143,69 @@ function RouteComponent() {
 
   return (
     <div className="pt-8 max-w-5xl mx-auto">
-      <div className="flex gap-8 mb-8">
-        {/* Book Cover Image */}
-        <div className="flex-shrink-0">
-          <img
-            src="https://img.wattpad.com/cover/392642739-256-k475365.jpg"
-            alt={`Cover for ${book.title}`}
-            className="w-48 h-64 object-cover rounded-lg shadow-md"
-          />
-        </div>
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="flex gap-8">
+          {/* Book Cover Image */}
+          <div className="flex-shrink-0">
+            {book.coverImage?.data ? (
+              <img
+                src={book.coverImage?.data}
+                alt={`Cover for ${book.title}`}
+                className="w-48 h-64 object-cover rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300"
+              />
+            ) : (
+              <div className="w-48 h-64 bg-gray-200 rounded-lg shadow-md"></div>
+            )}
+          </div>
 
-        {/* Book Info */}
-        <div className="flex-grow">
-          <div className="flex items-start justify-between mb-4">
-            <div className="space-y-2">
-              <div className="flex items-baseline gap-4">
-                <h1 className="text-4xl font-bold">{book.title}</h1>
+          {/* Book Info */}
+          <div className="flex-grow">
+            <div className="flex items-start justify-between mb-4">
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-4">
+                  <h1 className="text-4xl font-bold text-gray-900">
+                    {book.title}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-4 text-gray-600">
+                  <span className="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                    {chapters.length}{" "}
+                    {chapters.length === 1 ? "Chapter" : "Chapters"}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-gray-600">
-                <span>
-                  {chapters.length}{" "}
-                  {chapters.length === 1 ? "Chapter" : "Chapters"}
-                </span>
-              </div>
+              {isAdmin && (
+                <Button variant="secondary" size="sm" asChild>
+                  <Link
+                    to="/books/$bookId/edit"
+                    params={{ bookId: book.id.toString() }}
+                  >
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit
+                  </Link>
+                </Button>
+              )}
             </div>
-            {isAdmin && (
-              <Button variant="outline" size="sm" asChild>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              {book.description}
+            </p>
+
+            {/* Start Reading Button */}
+            {chapters.length > 0 && (
+              <Button size="lg" asChild>
                 <Link
-                  to="/books/$bookId/edit"
-                  params={{ bookId: book.id.toString() }}
+                  to="/books/$bookId/chapters/$chapterId"
+                  params={{
+                    bookId: book.id.toString(),
+                    chapterId: chapters[0].id.toString(),
+                  }}
                 >
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Start Reading
                 </Link>
               </Button>
             )}
           </div>
-          <p className="text-gray-600 mb-6">{book.description}</p>
-
-          {/* Start Reading Button */}
-          {chapters.length > 0 && (
-            <Button size="lg" asChild>
-              <Link
-                to="/books/$bookId/chapters/$chapterId"
-                params={{
-                  bookId: book.id.toString(),
-                  chapterId: chapters[0].id.toString(),
-                }}
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                Start Reading
-              </Link>
-            </Button>
-          )}
         </div>
       </div>
 

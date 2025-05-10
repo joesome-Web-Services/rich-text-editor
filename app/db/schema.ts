@@ -79,6 +79,9 @@ export const books = tableCreator("book", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  coverImageId: integer("coverImageId").references(() => images.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -104,9 +107,14 @@ export const comments = tableCreator("comment", {
   userId: serial("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  content: text("content").notNull(),
+  content: text("content").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const images = tableCreator("image", {
+  id: serial("id").primaryKey(),
+  data: text("data").notNull(),
 });
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -117,6 +125,13 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   chapter: one(chapters, {
     fields: [comments.chapterId],
     references: [chapters.id],
+  }),
+}));
+
+export const booksRelations = relations(books, ({ one }) => ({
+  coverImage: one(images, {
+    fields: [books.coverImageId],
+    references: [images.id],
   }),
 }));
 

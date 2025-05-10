@@ -153,6 +153,9 @@ const getBookFn = createServerFn()
   .handler(async ({ data: { bookId } }) => {
     const book = await database.query.books.findFirst({
       where: eq(books.id, parseInt(bookId)),
+      with: {
+        coverImage: true,
+      },
     });
 
     if (!book) {
@@ -302,7 +305,6 @@ function ChapterView({ title, content, bookId, chapterId }: ChapterViewProps) {
       <div className="flex justify-end mt-8">
         <NextChapterButton bookId={bookId} currentChapterId={chapterId} />
       </div>
-      <hr className="border-gray-400 my-12 max-w-2xl mx-auto" />
     </div>
   );
 }
@@ -400,6 +402,24 @@ function NextChapterButton({
   );
 }
 
+function ChapterPanel({
+  children,
+  left,
+  right,
+}: {
+  children?: React.ReactNode;
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm rounded-t-xl">
+      <div className="flex items-center gap-2">{left}</div>
+      <div className="flex items-center gap-2">{right}</div>
+      {children}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/books/$bookId/chapters/$chapterId")({
   component: RouteComponent,
   loader: async () => {
@@ -423,6 +443,7 @@ function RouteComponent() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["chapter", chapterId],
     queryFn: () => getChapterFn({ data: { chapterId } }),
+    refetchOnWindowFocus: false,
   });
 
   const form = useForm<FormValues>({
@@ -557,13 +578,15 @@ function RouteComponent() {
   if (!isAdmin) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <ChapterView
-          title={chapter.title}
-          content={chapter.content}
-          bookId={bookId}
-          chapterId={chapterId}
-        />
-        <Comments />
+        <div className="bg-white shadow-lg rounded-xl px-6 py-10">
+          <ChapterView
+            title={chapter.title}
+            content={chapter.content}
+            bookId={bookId}
+            chapterId={chapterId}
+          />
+          <Comments />
+        </div>
       </div>
     );
   }
@@ -574,7 +597,7 @@ function RouteComponent() {
 
   return (
     <>
-      <div className="pt-4 border-b border-gray-200 pb-4 text-center flex gap-4 justify-center items-center">
+      <div className="pt-4 bg-white border-b border-gray-200 pb-4 text-center flex gap-4 justify-center items-center">
         <RouterLink
           to="/books/$bookId"
           className="flex gap-2 items-center"
@@ -582,146 +605,168 @@ function RouteComponent() {
             bookId: bookId,
           }}
         >
-          <img
-            src="https://img.wattpad.com/cover/392642739-256-k475365.jpg"
-            className="size-6 object-cover rounded-full shadow-md"
-          />
-          <h1 className="text-xl font-semibold text-muted-foreground">
+          {bookData?.book.coverImage?.data ? (
+            <img
+              src={bookData.book.coverImage.data}
+              alt={`Cover for ${bookData.book.title}`}
+              className="size-6 object-cover rounded-full shadow-md"
+            />
+          ) : (
+            <div className="size-6 rounded-full bg-gray-200 shadow-md" />
+          )}
+          <p className="text-xl font-semibold text-muted-foreground">
             {bookData?.book.title}
-          </h1>
+          </p>
         </RouterLink>
       </div>
 
-      <div className="max-w-3xl mx-auto pt-12">
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2 items-center">
-              <ChapterNavigation bookId={bookId} currentChapterId={chapterId} />
+      <div className="max-w-5xl mx-auto py-12">
+        <div className="space-y-8">
+          <div className="bg-white shadow-lg rounded-xl">
+            <ChapterPanel
+              left={
+                <ChapterNavigation
+                  bookId={bookId}
+                  currentChapterId={chapterId}
+                />
+              }
+              right={
+                isAdmin && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsPreview(!isPreview)}
+                      className="inline-flex items-center gap-2"
+                    >
+                      {isPreview ? (
+                        <>
+                          <Edit className="h-4 w-4" />
+                          <span>Edit</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4" />
+                          <span>Preview</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() =>
+                        togglePublishMutation.mutate(!data?.chapter.isPublished)
+                      }
+                      disabled={togglePublishMutation.isPending}
+                      className="inline-flex items-center gap-2"
+                    >
+                      {togglePublishMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : data?.chapter.isPublished ? (
+                        <>
+                          <EyeOff className="h-4 w-4" />
+                          <span>Unpublish</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-4 w-4" />
+                          <span>Publish</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="submit"
+                      form="chapter-form"
+                      disabled={updateChapterMutation.isPending || isPreview}
+                      className="inline-flex items-center gap-2"
+                    >
+                      {updateChapterMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      <span>Save Changes</span>
+                    </Button>
+                  </>
+                )
+              }
+            />
+            <div className="px-6 py-10">
+              {isPreview ? (
+                <ChapterView
+                  title={form.getValues("title")}
+                  content={form.getValues("content")}
+                  bookId={bookId}
+                  chapterId={chapterId}
+                />
+              ) : (
+                <Form {...form}>
+                  <form
+                    id="chapter-form"
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-8"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chapter Title</FormLabel>
+                          <FormDescription>
+                            The title of your chapter. This will be displayed at
+                            the top of the chapter.
+                          </FormDescription>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Enter chapter title"
+                              disabled={isPreview}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chapter Content</FormLabel>
+                          <FormDescription>
+                            Write your chapter content here. Use the toolbar
+                            above to format your text.
+                          </FormDescription>
+                          <FormControl>
+                            <div
+                              className={cn(
+                                "min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm",
+                                "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring"
+                              )}
+                            >
+                              <Toolbar editor={editor} />
+                              <div className="p-3">
+                                <EditorContent
+                                  editor={editor}
+                                  className="min-h-[460px]"
+                                  aria-label="Chapter content editor"
+                                />
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+              )}
             </div>
-            {isAdmin && (
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsPreview(!isPreview)}
-                  className="inline-flex items-center gap-2"
-                >
-                  {isPreview ? (
-                    <>
-                      <Edit className="h-4 w-4" />
-                      <span>Edit</span>
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4" />
-                      <span>Preview</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() =>
-                    togglePublishMutation.mutate(!data?.chapter.isPublished)
-                  }
-                  disabled={togglePublishMutation.isPending}
-                  className="inline-flex items-center gap-2"
-                >
-                  {togglePublishMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : data?.chapter.isPublished ? (
-                    <>
-                      <EyeOff className="h-4 w-4" />
-                      <span>Unpublish</span>
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="h-4 w-4" />
-                      <span>Publish</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="submit"
-                  form="chapter-form"
-                  disabled={updateChapterMutation.isPending || isPreview}
-                  className="inline-flex items-center gap-2"
-                >
-                  {updateChapterMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  <span>Save Changes</span>
-                </Button>
-              </div>
-            )}
+          </div>
+          <div className="bg-white shadow-lg rounded-xl px-6 py-10">
+            <Comments />
           </div>
         </div>
-
-        {isPreview ? (
-          <>
-            <ChapterView
-              title={form.getValues("title")}
-              content={form.getValues("content")}
-              bookId={bookId}
-              chapterId={chapterId}
-            />
-          </>
-        ) : (
-          <Form {...form}>
-            <form
-              id="chapter-form"
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-8"
-            >
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Chapter Title"
-                        disabled={isPreview}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <div
-                        className={cn(
-                          "min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm",
-                          "focus-within:outline-none focus-within:ring-1 focus-within:ring-ring"
-                        )}
-                      >
-                        <Toolbar editor={editor} />
-                        <div className="p-3">
-                          <EditorContent
-                            editor={editor}
-                            className="min-h-[460px]"
-                          />
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        )}
-
-        <Comments />
       </div>
     </>
   );
