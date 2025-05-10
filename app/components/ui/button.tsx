@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-rose-600 text-white shadow-sm hover:bg-rose-700",
+        default: "bg-rose-400 text-white shadow-sm hover:bg-rose-500",
         destructive: "bg-red-500 text-white shadow-sm hover:bg-red-600",
         "destructive-outline":
           "border border-red-200 bg-transparent text-red-600 shadow-sm hover:bg-red-50",
@@ -17,7 +17,7 @@ const buttonVariants = cva(
           "border border-rose-200 bg-background shadow-sm hover:bg-rose-50 hover:text-rose-700",
         "gray-outline":
           "border border-gray-200 bg-transparent text-gray-600 shadow-sm hover:bg-gray-50/80 hover:text-gray-700",
-        secondary: "bg-rose-100 text-rose-800 shadow-sm hover:bg-rose-200",
+        secondary: "bg-rose-100 text-rose-700 shadow-sm hover:bg-rose-200",
         ghost: "hover:bg-rose-50 hover:text-rose-700",
         link: "text-rose-600 underline-offset-4 hover:underline",
       },

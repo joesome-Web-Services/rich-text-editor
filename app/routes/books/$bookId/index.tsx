@@ -113,13 +113,48 @@ function RouteComponent() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3 mb-8"></div>
-          <div className="space-y-3">
+      <div className="pt-8 max-w-5xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex gap-8">
+            {/* Book Cover Skeleton */}
+            <div className="flex-shrink-0">
+              <div className="w-48 h-64 bg-gray-200 rounded-lg shadow-md animate-pulse"></div>
+            </div>
+
+            {/* Book Info Skeleton */}
+            <div className="flex-grow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-2">
+                  <div className="h-10 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                </div>
+              </div>
+              <div className="space-y-2 mb-6">
+                <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
+              </div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        <hr className="my-8 border-gray-200" />
+
+        {/* Chapters List Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="h-8 bg-gray-200 rounded w-24 animate-pulse"></div>
+            <div className="h-9 bg-gray-200 rounded w-28 animate-pulse"></div>
+          </div>
+          <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div key={i} className="p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="h-5 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -130,7 +165,7 @@ function RouteComponent() {
   if (error) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="text-red-600">Error loading book: {error.message}</div>
+        <div className="text-rose-500">Error loading book: {error.message}</div>
       </div>
     );
   }
@@ -172,7 +207,7 @@ function RouteComponent() {
                   </h1>
                 </div>
                 <div className="flex items-center gap-4 text-gray-600">
-                  <span className="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                  <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded">
                     {chapters.length}{" "}
                     {chapters.length === 1 ? "Chapter" : "Chapters"}
                   </span>
@@ -248,7 +283,7 @@ function RouteComponent() {
                   }}
                   className={`block p-4 rounded-lg border transition-colors ${
                     chapter.isPublished
-                      ? "border-gray-200 hover:border-red-500 hover:bg-red-50"
+                      ? "border-gray-200 hover:border-rose-400 hover:bg-rose-50"
                       : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
                   }`}
                 >

@@ -1,5 +1,10 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +35,7 @@ import {
 } from "lucide-react";
 import { Toggle } from "~/components/ui/toggle";
 import { isAdminFn } from "~/fn/auth";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Comments } from "./-components/comments";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -46,6 +51,8 @@ import { ChapterTitle } from "./-components/chapter.title";
 import { ContentEditor } from "./-components/content-editor";
 import { NextChapterButton } from "./-components/next-chapter-button";
 import { SaveStatus } from "./-components/save-status";
+import { ReadingProgress } from "./-components/reading-progress";
+import type { Chapter } from "~/db/schema";
 
 const SAVE_DELAY = 2000;
 
@@ -58,6 +65,10 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+interface ChapterData {
+  chapter: Chapter;
+}
 
 function ChapterPanel({
   children,
@@ -94,7 +105,7 @@ function RouteComponent() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useSuspenseQuery({
     queryKey: ["chapter", chapterId],
     queryFn: () => getChapterFn({ data: { chapterId } }),
     refetchOnWindowFocus: false,
@@ -191,13 +202,84 @@ function RouteComponent() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+      <>
+        <ReadingProgress />
+        {/* <div className="max-w-5xl mx-auto">
+          <SocialShare title="Loading..." url={window.location.href} />
+        </div> */}
+        {/* <Suspense
+          fallback={
+            <div className="bg-white border-b border-gray-200">
+              <div className="max-w-5xl mx-auto px-6 py-4">
+                <div className="space-y-2">
+                  <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <BookTitle bookId={bookId} chapterTitle={data?.chapter?.title} />
+        </Suspense> */}
+
+        <div className="max-w-5xl mx-auto py-12">
+          <div className="space-y-8">
+            {/* Chapter Content Card */}
+            <div className="bg-white shadow-lg rounded-xl">
+              {/* Chapter Panel Skeleton */}
+              <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm rounded-t-xl">
+                <div className="flex items-center gap-4">
+                  <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
+                  <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
+                </div>
+                <div className="h-9 bg-gray-200 rounded w-28 animate-pulse"></div>
+              </div>
+
+              {/* Chapter Content Skeleton */}
+              <div className="px-6 py-10">
+                <div className="max-w-3xl mx-auto">
+                  {/* Title Skeleton */}
+                  <div className="h-10 bg-gray-200 rounded w-3/4 mb-8 animate-pulse"></div>
+
+                  <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
+
+                  {/* Content Editor Skeleton */}
+                  <div className="space-y-4">
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                  </div>
+
+                  {/* Next Chapter Button Skeleton */}
+                  <div className="flex justify-end mt-8">
+                    <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Comments Section Skeleton */}
+            <div className="bg-white shadow-lg rounded-xl px-6 py-10">
+              <div className="space-y-6">
+                <div className="h-6 bg-gray-200 rounded w-1/4 mb-6 animate-pulse"></div>
+                {[1, 2].map((i) => (
+                  <div key={i} className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -211,7 +293,7 @@ function RouteComponent() {
     );
   }
 
-  if (!data) {
+  if (!data?.chapter) {
     return null;
   }
 
@@ -219,7 +301,21 @@ function RouteComponent() {
 
   return (
     <>
-      <BookTitle bookId={bookId} />
+      <ReadingProgress />
+      <Suspense
+        fallback={
+          <div className="bg-white border-b border-gray-200">
+            <div className="max-w-5xl mx-auto px-6 py-4">
+              <div className="space-y-2">
+                <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        }
+      >
+        <BookTitle bookId={bookId} chapterTitle={data.chapter.title} />
+      </Suspense>
       <div className="max-w-5xl mx-auto py-12">
         <div className="space-y-8">
           <div className="bg-white shadow-lg rounded-xl">
