@@ -43,6 +43,10 @@ import {
   updateChapterFn,
 } from "./-funs";
 import { ChapterNavigation } from "./-components/chapter-navigation";
+import { BookTitle } from "./-components/book-title";
+import { ChapterTitle } from "./-components/chapter.title";
+
+const SAVE_DELAY = 2000;
 
 const formSchema = z.object({
   title: z
@@ -353,7 +357,7 @@ function RouteComponent() {
     saveTimeoutRef.current = setTimeout(() => {
       const values = form.getValues();
       updateChapterMutation.mutate(values);
-    }, 3000);
+    }, SAVE_DELAY);
   };
 
   // Cleanup timeout on unmount
@@ -420,29 +424,7 @@ function RouteComponent() {
 
   return (
     <>
-      <div className="pt-4 bg-white border-b border-gray-200 pb-4 text-center flex gap-4 justify-center items-center">
-        <RouterLink
-          to="/books/$bookId"
-          className="flex gap-2 items-center"
-          params={{
-            bookId: bookId,
-          }}
-        >
-          {bookData?.book.coverImage?.data ? (
-            <img
-              src={bookData.book.coverImage.data}
-              alt={`Cover for ${bookData.book.title}`}
-              className="size-6 object-cover rounded-full shadow-md"
-            />
-          ) : (
-            <div className="size-6 rounded-full bg-gray-200 shadow-md" />
-          )}
-          <p className="text-xl font-semibold text-muted-foreground">
-            {bookData?.book.title}
-          </p>
-        </RouterLink>
-      </div>
-
+      <BookTitle bookId={bookId} />
       <div className="max-w-5xl mx-auto py-12">
         <div className="space-y-8">
           <div className="bg-white shadow-lg rounded-xl">
@@ -483,48 +465,14 @@ function RouteComponent() {
             />
             <div className="px-6 py-10">
               <div className="max-w-3xl mx-auto">
-                {isAdmin && isEditingTitle ? (
-                  <input
-                    {...form.register("title")}
-                    type="text"
-                    spellCheck={false}
-                    className="text-3xl font-bold mb-8 text-center w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0 m-0 block"
-                    style={{
-                      fontFamily: "inherit",
-                      lineHeight: "1.2",
-                      letterSpacing: "inherit",
-                      appearance: "none",
-                      MozAppearance: "none",
-                      WebkitAppearance: "none",
-                      marginBottom: "2rem",
-                      padding: 0,
-                      height: "auto",
-                      minHeight: "unset",
-                    }}
-                    onBlur={() => {
-                      setIsEditingTitle(false);
-                      debounceSave();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        setIsEditingTitle(false);
-                        debounceSave();
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <h1
-                    className={cn(
-                      "text-3xl font-bold mb-8 text-center",
-                      isAdmin &&
-                        "cursor-pointer hover:bg-gray-50 rounded-md transition-colors"
-                    )}
-                    onClick={() => isAdmin && setIsEditingTitle(true)}
-                  >
-                    {form.watch("title")}
-                  </h1>
-                )}
+                <ChapterTitle
+                  title={form.watch("title")}
+                  isAdmin={isAdmin}
+                  onTitleChange={(newTitle) => {
+                    form.setValue("title", newTitle, { shouldValidate: true });
+                    debounceSave();
+                  }}
+                />
                 <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
                 <div
                   className={cn(
