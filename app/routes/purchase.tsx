@@ -5,7 +5,6 @@ import { authenticatedMiddleware } from "~/lib/auth";
 import { env } from "~/utils/env";
 import { loadStripe } from "@stripe/stripe-js";
 import { publicEnv } from "~/utils/env-public";
-import { Button, buttonVariants } from "~/components/ui/button";
 import {
   Lock,
   Star,
@@ -16,7 +15,6 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { useAuth } from "~/hooks/use-auth";
-import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/purchase")({
   component: RouteComponent,
@@ -125,14 +123,6 @@ function RouteComponent() {
             <p className="text-xl text-gray-300 mb-4">
               Master React through hands-on problem solving
             </p>
-            {/* <div className="flex items-center justify-center gap-2 text-theme-400">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-current" />
-                ))}
-              </div>
-              <span className="text-gray-300">4.9/5 from 500+ students</span>
-            </div> */}
           </div>
 
           <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg border border-theme-400/20 shadow-[0_0_15px_rgba(74,222,128,0.1)] overflow-hidden">
@@ -222,36 +212,6 @@ function RouteComponent() {
                   </div>
 
                   <div className="flex flex-col items-center gap-4">
-                    {/* {user ? (
-                      !user.isPremium ? (
-                        <Button size="lg" onClick={handlePurchase}>
-                          Get Instant Access
-                        </Button>
-                      ) : (
-                        <Link
-                          to="/learn/$slug"
-                          params={{ slug: continueSlug }}
-                          className={buttonVariants({
-                            variant: "default",
-                            size: "lg",
-                          })}
-                        >
-                          Continue with Course
-                        </Link>
-                      )
-                    ) : (
-                      <a
-                        href={`/api/login/google?redirect_uri=${encodeURIComponent("/purchase")}`}
-                      >
-                        <Button
-                          size="lg"
-                          className="w-full max-w-sm font-semibold bg-theme-400 hover:bg-theme-500 text-black text-lg py-6"
-                        >
-                          Login to Purchase
-                        </Button>
-                      </a>
-                    )} */}
-
                     <div className="flex items-center gap-2 text-gray-400">
                       <Lock className="h-4 w-4" />
                       <span className="text-sm">

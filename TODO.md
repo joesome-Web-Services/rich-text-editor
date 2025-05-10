@@ -5,7 +5,10 @@
 - a user shall be able to comment on any paragraph in the story
 - display the latest comments on the book homepage
 - display the total number of comments in the book homepage
+- the admin should be able to upload an image for their book cover (store in postgres blob for now)
+- as a user reads through a chapter, there should be a top bar that shows the progress of their reading
+- send out email notifications when a new chapter is published
 
-## DevOps Tasks
+## Devops Tasks
 
 - deploy to railway and hook my domain up
