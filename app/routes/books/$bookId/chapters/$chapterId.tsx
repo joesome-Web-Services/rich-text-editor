@@ -105,7 +105,7 @@ function RouteComponent() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
-  const { data, isLoading, error } = useSuspenseQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["chapter", chapterId],
     queryFn: () => getChapterFn({ data: { chapterId } }),
     refetchOnWindowFocus: false,
@@ -204,23 +204,14 @@ function RouteComponent() {
     return (
       <>
         <ReadingProgress />
-        {/* <div className="max-w-5xl mx-auto">
-          <SocialShare title="Loading..." url={window.location.href} />
-        </div> */}
-        {/* <Suspense
-          fallback={
-            <div className="bg-white border-b border-gray-200">
-              <div className="max-w-5xl mx-auto px-6 py-4">
-                <div className="space-y-2">
-                  <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
-                  <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                </div>
-              </div>
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="space-y-2">
+              <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+              <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
             </div>
-          }
-        >
-          <BookTitle bookId={bookId} chapterTitle={data?.chapter?.title} />
-        </Suspense> */}
+          </div>
+        </div>
 
         <div className="max-w-5xl mx-auto py-12">
           <div className="space-y-8">
