@@ -65,11 +65,7 @@ function RouteComponent() {
 
           {isAdmin && (
             <div className="pt-4">
-              <Button
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 relative font-medium inline-flex items-center gap-2"
-                asChild
-              >
+              <Button size="lg" asChild>
                 <Link to="/books/create">
                   <PlusCircle className="w-5 h-5" aria-hidden="true" />
                   <span>Create Your First Book</span>

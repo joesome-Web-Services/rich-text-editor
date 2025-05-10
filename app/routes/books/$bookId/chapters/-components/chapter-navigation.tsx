@@ -46,7 +46,7 @@ export function ChapterNavigation({
         align="start"
         className="w-[400px] bg-background border border-input shadow-md"
       >
-        {data.chapters.map((chapter, index) => (
+        {data.chapters.map((chapter) => (
           <DropdownMenuItem
             key={chapter.id}
             asChild
@@ -63,7 +63,7 @@ export function ChapterNavigation({
                 parseInt(currentChapterId) === chapter.id && "font-bold"
               )}
             >
-              {index + 1}. {chapter.title}
+              {chapter.title}
             </Link>
           </DropdownMenuItem>
         ))}
