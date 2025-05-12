@@ -1,7 +1,6 @@
 import {
   Outlet,
   createRootRouteWithContext,
-  useRouter,
   useRouterState,
 } from "@tanstack/react-router";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -17,8 +16,8 @@ import { Header } from "~/routes/-components/header";
 import { FooterSection } from "~/routes/-components/footer";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
-import { Toast } from "~/components/ui/toast";
 import { Toaster } from "~/components/ui/toaster";
+import { configuration } from "~/config";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   {
@@ -27,8 +26,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         ...seo({
-          title: "ViennaMata",
-          description: "A collection of books by Vienna Mata.",
+          title: configuration.name,
+          description: configuration.description,
         }),
       ],
       links: [

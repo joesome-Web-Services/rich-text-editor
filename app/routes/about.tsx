@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Mail, Twitter } from "lucide-react";
+import { configuration } from "~/config";
 
 export const Route = createFileRoute("/about")({
   component: RouteComponent,
@@ -16,7 +17,9 @@ function RouteComponent() {
           <Badge variant="secondary" className="mb-4">
             About the Author
           </Badge>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Vienna Mata</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            {configuration.name}
+          </h1>
           <p className="text-xl text-gray-600 leading-relaxed">
             Crafting stories that inspire and connect
           </p>

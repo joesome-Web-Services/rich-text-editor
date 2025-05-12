@@ -8,6 +8,7 @@ import { useAuth } from "~/hooks/use-auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { z } from "zod";
+import { configuration } from "~/config";
 
 export const getBooksFn = createServerFn()
   .validator(
@@ -36,7 +37,7 @@ export function Header() {
           <div className="flex items-center gap-12">
             <Link to="/" className="flex items-center gap-3">
               <span className="font-serif text-xl text-gray-800">
-                Vienna<span className="text-rose-600">Mata</span>
+                {configuration.name}
               </span>
             </Link>
             <Link

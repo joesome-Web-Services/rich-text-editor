@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { configuration } from "~/config";
 
 export function FooterSection() {
   return (
@@ -56,7 +57,7 @@ export function FooterSection() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="mailto:hello@viennamata.com"
+                  href={`mailto:${configuration.email}`}
                   className="hover:text-rose-600 transition-colors font-light"
                 >
                   Email Me
@@ -68,7 +69,8 @@ export function FooterSection() {
 
         <div className="text-center pt-8 border-t border-rose-100">
           <p className="font-light text-sm">
-            © 2025 Vienna Mata. All rights reserved.
+            © {new Date().getFullYear()} {configuration.company}. All rights
+            reserved.
           </p>
         </div>
       </div>

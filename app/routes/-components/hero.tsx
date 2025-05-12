@@ -1,5 +1,6 @@
 import { Button } from "~/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { configuration } from "~/config";
 
 export function HeroSection() {
   return (
@@ -15,10 +16,10 @@ export function HeroSection() {
         className="relative z-10 h-full flex items-center justify-center w-full animate-fade-in"
         aria-label="Hero Section"
       >
-        <div className="container mx-auto px-6 lg:px-12 flex flex-col items-center text-center max-w-3xl mx-auto">
+        <div className="container px-6 lg:px-12 flex flex-col items-center text-center max-w-3xl mx-auto">
           {/* Subtitle */}
           <p className="text-rose-600 text-lg font-medium mb-2 tracking-wide uppercase">
-            Welcome to ViennaMata
+            Welcome to {configuration.name}
           </p>
           {/* Removed Author Avatar */}
           <h1 className="font-serif text-6xl sm:text-8xl font-light mb-4 text-gray-900">
