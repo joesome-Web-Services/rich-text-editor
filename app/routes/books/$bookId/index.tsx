@@ -113,7 +113,7 @@ function RouteComponent() {
 
   if (isLoading) {
     return (
-      <div className="pt-8 max-w-5xl mx-auto">
+      <div className="pt-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex gap-8">
             {/* Book Cover Skeleton */}
@@ -181,7 +181,7 @@ function RouteComponent() {
   const { book, chapters = [] } = data;
 
   return (
-    <div className="pt-8 max-w-5xl mx-auto">
+    <div className="pt-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <div className="flex gap-8">
           {/* Book Cover Image */}

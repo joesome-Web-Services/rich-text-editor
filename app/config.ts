@@ -14,22 +14,24 @@ const defaultConfiguration: Configuration = {
 
 export const configuration: Configuration = (() => {
   try {
-    if (!process.env.VITE_CONFIGURATION) {
+    const configurationString = import.meta.env.VITE_CONFIGURATION;
+    if (!configurationString) {
       return defaultConfiguration;
     }
 
-    const decodedConfig = atob(process.env.VITE_CONFIGURATION);
+    const decodedConfig = atob(configurationString);
     const config = JSON.parse(decodedConfig);
 
     // Validate that all required fields are present
-    if (
-      !config.name ||
-      !config.description ||
-      !config.company ||
-      !config.email
-    ) {
+    const missingFields = [];
+    if (!config.name) missingFields.push("name");
+    if (!config.description) missingFields.push("description");
+    if (!config.company) missingFields.push("company");
+    if (!config.email) missingFields.push("email");
+
+    if (missingFields.length > 0) {
       console.warn(
-        "Invalid configuration: missing required fields, using defaults"
+        `Invalid configuration: missing required fields [${missingFields.join(", ")}], using defaults`
       );
       return defaultConfiguration;
     }

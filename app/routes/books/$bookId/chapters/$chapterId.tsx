@@ -213,7 +213,7 @@ function RouteComponent() {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto py-12">
+        <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="space-y-8">
             {/* Chapter Content Card */}
             <div className="bg-white shadow-lg rounded-xl">
@@ -307,7 +307,7 @@ function RouteComponent() {
       >
         <BookTitle bookId={bookId} chapterTitle={data.chapter.title} />
       </Suspense>
-      <div className="max-w-5xl mx-auto py-12">
+      <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
           <div className="bg-white shadow-lg rounded-xl">
             <ChapterPanel
