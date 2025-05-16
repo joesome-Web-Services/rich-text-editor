@@ -1,87 +1,278 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Badge } from "~/components/ui/badge";
+import { createServerFn } from "@tanstack/react-start";
+import {
+  getConfiguration,
+  updateConfiguration,
+} from "~/data-access/configuration";
+import { useState, useEffect, useRef } from "react";
+import { useDebounce } from "~/hooks/use-debounce";
+import { useToast } from "~/hooks/use-toast";
+import { isAdminFn } from "~/fn/auth";
+import { Loader2 } from "lucide-react";
+import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { Mail, Twitter } from "lucide-react";
-import { configuration } from "~/config";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import { Toolbar } from "~/routes/books/$bookId/chapters/-components/toolbar";
+import sanitizeHtml from "sanitize-html";
+
+export const getConfigurationFn = createServerFn().handler(async () => {
+  return await getConfiguration();
+});
+
+export const updateConfigurationFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      about: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    // Sanitize the HTML content
+    const sanitizedContent = sanitizeHtml(data.about, {
+      allowedTags: [
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "blockquote",
+        "p",
+        "a",
+        "ul",
+        "ol",
+        "nl",
+        "li",
+        "b",
+        "i",
+        "strong",
+        "em",
+        "strike",
+        "code",
+        "hr",
+        "br",
+        "div",
+        "table",
+        "thead",
+        "caption",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "pre",
+        "span",
+      ],
+      allowedAttributes: {
+        a: ["href", "name", "target", "class"],
+        img: ["src", "alt", "title", "class"],
+        "*": ["class"],
+      },
+      allowedSchemes: ["http", "https", "mailto", "tel"],
+      transformTags: {
+        a: (tagName, attribs) => {
+          // Ensure external links open in new tab
+          if (attribs.href && !attribs.href.startsWith("/")) {
+            return {
+              tagName,
+              attribs: {
+                ...attribs,
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
+            };
+          }
+          return { tagName, attribs };
+        },
+      },
+    });
+
+    return await updateConfiguration({ about: sanitizedContent });
+  });
 
 export const Route = createFileRoute("/about")({
   component: RouteComponent,
+  loader: async () => {
+    const isAdmin = await isAdminFn();
+    return { isAdmin };
+  },
 });
 
-function RouteComponent() {
+function EditableContent({
+  content,
+  isAdmin,
+  onSave,
+}: {
+  content: string;
+  isAdmin: boolean;
+  onSave: () => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline underline-offset-4",
+        },
+      }),
+    ],
+    content: content || "",
+    editable: false,
+    onUpdate: ({ editor }) => {
+      // TipTap manages its own state, no need for local state
+    },
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none max-w-none min-h-[200px] p-4",
+      },
+    },
+  });
+
+  // Update editor content when data is loaded
+  useEffect(() => {
+    if (editor && content && editor.getHTML() !== content) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
+
+  // Update editable state when isEditing changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(isAdmin && isEditing);
+    }
+  }, [editor, isAdmin, isEditing]);
+
+  const handleSave = async () => {
+    if (!editor) return;
+
+    const newContent = editor.getHTML();
+    if (newContent === content) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateConfigurationFn({ data: { about: newContent } });
+      toast({
+        title: "Success",
+        description: "Content saved successfully!",
+      });
+      setIsEditing(false);
+      onSave();
+    } catch (error) {
+      console.error("Failed to save content:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (editor) {
+      editor.commands.setContent(content);
+    }
+    setIsEditing(false);
+  };
+
+  if (!isAdmin) {
+    return (
+      <div className="prose max-w-none">
+        <div dangerouslySetInnerHTML={{ __html: content }} />
+      </div>
+    );
+  }
+
   return (
-    <main className="mt-32 container mx-auto px-4 pb-16">
+    <div className="relative group">
+      {isEditing ? (
+        <div className="space-y-4">
+          <div className="min-h-[500px] w-full rounded-md border border-input bg-transparent shadow-sm">
+            <div className="opacity-100 transition-opacity">
+              <Toolbar editor={editor} />
+            </div>
+            <div className="p-3">
+              <EditorContent
+                editor={editor}
+                className="min-h-[460px]"
+                aria-label="About content editor"
+                tabIndex={0}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {isSaving && (
+              <div className="text-sm text-gray-500 flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving || !editor || editor.getHTML() === content}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="prose max-w-none relative group/edit cursor-pointer rounded-lg p-4 transition-all hover:bg-gray-50 border border-transparent hover:border-gray-200"
+          onClick={() => {
+            setIsEditing(true);
+            setTimeout(() => editor?.commands.focus(), 0);
+          }}
+        >
+          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <div className="absolute top-2 right-2 opacity-0 group-hover/edit:opacity-100 transition-opacity">
+            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              Click to edit
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RouteComponent() {
+  const { isAdmin } = Route.useLoaderData();
+
+  const configuration = useSuspenseQuery({
+    queryKey: ["configuration"],
+    queryFn: getConfigurationFn,
+  });
+
+  return (
+    <main className="mt-12 container mx-auto px-4 pb-16">
       <div className="max-w-3xl mx-auto">
-        {/* Header Section */}
-        <div className="text-center mb-16">
-          <Badge variant="secondary" className="mb-4">
-            About the Author
-          </Badge>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {configuration.name}
-          </h1>
-          <p className="text-xl text-gray-600 leading-relaxed">
-            Crafting stories that inspire and connect
-          </p>
-        </div>
-
-        {/* Bio Section */}
-        <div className="prose prose-lg mx-auto mb-12">
-          <p className="lead text-gray-600">
-            Hello! I'm Sarah, a passionate writer based in San Francisco with a
-            love for crafting narratives that explore human connections and
-            personal growth.
-          </p>
-
-          <h2 className="text-2xl font-semibold text-gray-900 mt-12 mb-4">
-            My Writing Journey
-          </h2>
-          <p className="text-gray-600">
-            My journey into writing began over a decade ago when I started
-            journaling about my travels across Southeast Asia. What started as
-            personal reflections soon evolved into a deep passion for
-            storytelling. Today, I focus on creating fiction that weaves
-            together themes of personal discovery, cultural understanding, and
-            the bonds that connect us all.
-          </p>
-
-          <h2 className="text-2xl font-semibold text-gray-900 mt-12 mb-4">
-            What I Write
-          </h2>
-          <p className="text-gray-600">
-            I specialize in contemporary fiction and personal essays that
-            explore the complexities of modern relationships, cultural identity,
-            and personal transformation. My work has been featured in various
-            literary magazines and online publications.
-          </p>
-
-          <h2 className="text-2xl font-semibold text-gray-900 mt-12 mb-4">
-            Connect With Me
-          </h2>
-          <p className="text-gray-600 mb-8">
-            I love hearing from readers and fellow writers. Whether you want to
-            discuss my latest work, share your own writing journey, or explore
-            potential collaborations, I'm always open to connecting.
-          </p>
-        </div>
-
-        {/* Contact Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button
-            variant="outline"
-            className="inline-flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-          >
-            <Mail className="w-4 h-4" aria-hidden="true" />
-            <span>Email Me</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="inline-flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-          >
-            <Twitter className="w-4 h-4" aria-hidden="true" />
-            <span>Follow on Twitter</span>
-          </Button>
-        </div>
+        <EditableContent
+          onSave={() => {
+            configuration.refetch();
+          }}
+          content={configuration.data.about}
+          isAdmin={isAdmin}
+        />
       </div>
     </main>
   );

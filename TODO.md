@@ -1,3 +1,15 @@
+# TODO:
+
+- feature: add in google ad sense
+- bug: fix a bug where after the chapter saves, it seems to refocus to the bottom of the input
+- feature: show the number of words in the book
+- improvement: move the saved notification to the top of the page instead of bottom
+- feature: an admin should be able to click a "create next chapter" button as they are writing their story
+- design: the color of the buttons feels very inaccessible, rethink the colors
+- bug: after renaming a chapter, the dropdown doesn't update with the latest chapter name
+- improvement: add the chapter number in the dropdown
+- improvement: feature flag the ability for users to leave comments
+
 # Development Tasks
 
 - add the ability to highlight text and ask AI to rewrite

@@ -3,19 +3,29 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { Toolbar } from "./toolbar";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface ContentEditorProps {
   isAdmin: boolean;
   content?: string;
   onContentChange?: (content: string) => void;
+  onWordCountChange?: (count: number) => void;
 }
 
 export function ContentEditor({
   isAdmin,
   content,
   onContentChange,
+  onWordCountChange,
 }: ContentEditorProps) {
+  const lastSelection = useRef<{ from: number; to: number } | null>(null);
+
+  const calculateWordCount = (html: string) => {
+    const text = html.replace(/<[^>]*>/g, " ");
+    const words = text.trim().split(/\s+/);
+    return words.length;
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -29,8 +39,18 @@ export function ContentEditor({
     content: "",
     editable: isAdmin,
     onUpdate: ({ editor }) => {
-      if (isAdmin && onContentChange) {
-        onContentChange(editor.getHTML());
+      if (isAdmin) {
+        // Store current selection before update
+        const { from, to } = editor.state.selection;
+        lastSelection.current = { from, to };
+
+        const html = editor.getHTML();
+        if (onContentChange) {
+          onContentChange(html);
+        }
+        if (onWordCountChange) {
+          onWordCountChange(calculateWordCount(html));
+        }
       }
     },
     editorProps: {
@@ -44,9 +64,19 @@ export function ContentEditor({
   // Update editor content when data is loaded
   useEffect(() => {
     if (editor && content) {
-      editor.commands.setContent(content);
+      const currentContent = editor.getHTML();
+      if (currentContent !== content) {
+        editor.commands.setContent(content);
+        // Restore selection after content update
+        if (lastSelection.current) {
+          editor.commands.setTextSelection(lastSelection.current);
+        }
+        if (onWordCountChange) {
+          onWordCountChange(calculateWordCount(content));
+        }
+      }
     }
-  }, [editor, content]);
+  }, [editor, content, onWordCountChange]);
 
   return (
     <div

@@ -1,50 +1,15 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "~/components/ui/button";
 import { useToast } from "~/hooks/use-toast";
-import { useEditor, EditorContent, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import {
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Quote,
-  Redo,
-  Strikethrough,
-  Undo,
-  Link as LinkIcon,
-  Heading1,
-  Heading2,
-  Heading3,
-  Code,
-  Loader2,
-  Globe,
-  EyeOff,
-  ArrowLeft,
-  Check,
-} from "lucide-react";
-import { Toggle } from "~/components/ui/toggle";
+import { Loader2, Globe, EyeOff } from "lucide-react";
 import { isAdminFn } from "~/fn/auth";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Comments } from "./-components/comments";
-import { formatDistanceToNow } from "date-fns";
-import {
-  getBookChaptersFn,
-  getBookFn,
-  getChapterFn,
-  togglePublishFn,
-  updateChapterFn,
-} from "./-funs";
+import { getChapterFn, togglePublishFn, updateChapterFn } from "./-funs";
 import { ChapterNavigation } from "./-components/chapter-navigation";
 import { BookTitle } from "./-components/book-title";
 import { ChapterTitle } from "./-components/chapter.title";
@@ -53,8 +18,9 @@ import { NextChapterButton } from "./-components/next-chapter-button";
 import { SaveStatus } from "./-components/save-status";
 import { ReadingProgress } from "./-components/reading-progress";
 import type { Chapter } from "~/db/schema";
+import { GoogleAd } from "~/components/google-ad";
 
-const SAVE_DELAY = 2000;
+const SAVE_DELAY = 1000;
 
 const formSchema = z.object({
   title: z
@@ -103,6 +69,7 @@ function RouteComponent() {
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [wordCount, setWordCount] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -129,6 +96,20 @@ function RouteComponent() {
       setLastSaved(new Date());
     }
   }, [data, form]);
+
+  const calculateWordCount = (content: string) => {
+    // Remove HTML tags and count words
+    const text = content.replace(/<[^>]*>/g, " ");
+    const words = text.trim().split(/\s+/);
+    return words.length;
+  };
+
+  // Update word count when content changes
+  useEffect(() => {
+    if (data?.chapter) {
+      setWordCount(calculateWordCount(data.chapter.content));
+    }
+  }, [data?.chapter]);
 
   const debounceSave = () => {
     setIsSaving(true);
@@ -307,81 +288,112 @@ function RouteComponent() {
       >
         <BookTitle bookId={bookId} chapterTitle={data.chapter.title} />
       </Suspense>
-      <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          <div className="bg-white shadow-lg rounded-xl">
-            <ChapterPanel
-              left={
-                <ChapterNavigation
-                  bookId={bookId}
-                  currentChapterId={chapterId}
-                />
-              }
-              right={
-                isAdmin && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() =>
-                      togglePublishMutation.mutate(!data?.chapter.isPublished)
-                    }
-                    disabled={togglePublishMutation.isPending}
-                    className="inline-flex items-center gap-2"
-                  >
-                    {togglePublishMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : data?.chapter.isPublished ? (
-                      <>
-                        <EyeOff className="h-4 w-4" />
-                        <span>Unpublish</span>
-                      </>
-                    ) : (
-                      <>
-                        <Globe className="h-4 w-4" />
-                        <span>Publish</span>
-                      </>
-                    )}
-                  </Button>
-                )
-              }
-            />
-            <div className="px-6 py-10">
-              <div className="max-w-3xl mx-auto">
-                <ChapterTitle
-                  title={form.watch("title")}
-                  isAdmin={isAdmin}
-                  onTitleChange={(newTitle) => {
-                    form.setValue("title", newTitle, { shouldValidate: true });
-                    debounceSave();
-                  }}
-                />
-
-                <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
-
-                <ContentEditor
-                  isAdmin={isAdmin}
-                  content={chapter.content}
-                  onContentChange={(content) => {
-                    form.setValue("content", content, { shouldValidate: true });
-                    debounceSave();
-                  }}
-                />
-
-                <div className="flex justify-end mt-8">
-                  <NextChapterButton
+      {isAdmin && (
+        <SaveStatus
+          isSaving={isSaving}
+          lastSaved={lastSaved}
+          wordCount={wordCount}
+        />
+      )}
+      <div className="relative">
+        {/* Main content - centered */}
+        <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          <div className="space-y-8">
+            <div className="bg-white shadow-lg rounded-xl">
+              <ChapterPanel
+                left={
+                  <ChapterNavigation
                     bookId={bookId}
                     currentChapterId={chapterId}
                   />
+                }
+                right={
+                  isAdmin && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() =>
+                        togglePublishMutation.mutate(!data?.chapter.isPublished)
+                      }
+                      disabled={togglePublishMutation.isPending}
+                      className="inline-flex items-center gap-2"
+                    >
+                      {togglePublishMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : data?.chapter.isPublished ? (
+                        <>
+                          <EyeOff className="h-4 w-4" />
+                          <span>Unpublish</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-4 w-4" />
+                          <span>Publish</span>
+                        </>
+                      )}
+                    </Button>
+                  )
+                }
+              />
+              <div className="px-6 py-10">
+                <div className="max-w-3xl mx-auto">
+                  <ChapterTitle
+                    title={form.watch("title")}
+                    isAdmin={isAdmin}
+                    onTitleChange={(newTitle) => {
+                      form.setValue("title", newTitle, {
+                        shouldValidate: true,
+                      });
+                      debounceSave();
+                    }}
+                  />
+
+                  <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
+
+                  <ContentEditor
+                    isAdmin={isAdmin}
+                    content={chapter.content}
+                    onContentChange={(content) => {
+                      // Only update form when saving, not on every keystroke
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current);
+                      }
+                      saveTimeoutRef.current = setTimeout(() => {
+                        form.setValue("content", content, {
+                          shouldValidate: true,
+                        });
+                        debounceSave();
+                      }, SAVE_DELAY);
+                    }}
+                    onWordCountChange={setWordCount}
+                  />
+
+                  <div className="flex justify-end mt-8">
+                    <NextChapterButton
+                      bookId={bookId}
+                      currentChapterId={chapterId}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div className="bg-white shadow-lg rounded-xl px-6 py-10">
-            <Comments />
+            <div className="bg-white shadow-lg rounded-xl px-6 py-10">
+              <Comments />
+            </div>
           </div>
         </div>
+
+        {/* Ad overlay - positioned absolutely */}
+        {/* <div className="absolute top-0 right-0 w-64 h-full pointer-events-none">
+          <div className="sticky top-4 pointer-events-auto">
+            <GoogleAd
+              slot="YOUR_AD_SLOT_ID"
+              format="vertical"
+              style={{ display: "block", width: "100%", height: "600px" }}
+            />
+          </div>
+        </div> */}
       </div>
-      <SaveStatus isSaving={isSaving} lastSaved={lastSaved} />
     </>
   );
 }

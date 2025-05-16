@@ -10,6 +10,7 @@ import {
 import { getBookFn } from "../-funs";
 import { Button } from "~/components/ui/button";
 import { useToast } from "~/hooks/use-toast";
+import { isAdminFn } from "~/fn/auth";
 
 interface BookTitleProps {
   bookId: string;
@@ -20,6 +21,11 @@ export function BookTitle({ bookId, chapterTitle }: BookTitleProps) {
   const { data: bookData } = useSuspenseQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBookFn({ data: { bookId } }),
+  });
+
+  const { data: isAdmin } = useSuspenseQuery({
+    queryKey: ["isAdmin"],
+    queryFn: () => isAdminFn(),
   });
 
   const { toast } = useToast();
@@ -48,7 +54,9 @@ export function BookTitle({ bookId, chapterTitle }: BookTitleProps) {
   };
 
   return (
-    <div className="pt-4 bg-white border-b border-gray-200 pb-4">
+    <div
+      className={`${isAdmin ? "pt-16" : "pt-4"} bg-white border-b border-gray-200 pb-4`}
+    >
       <div className="max-w-5xl mx-auto px-4">
         <p className="text-sm text-gray-500 mb-2">You are reading</p>
         <div className="flex items-center justify-between">
@@ -92,6 +100,7 @@ export function BookTitle({ bookId, chapterTitle }: BookTitleProps) {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            Share on
             <Button
               variant="ghost"
               size="icon"

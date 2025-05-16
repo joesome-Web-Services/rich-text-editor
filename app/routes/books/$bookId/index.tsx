@@ -36,7 +36,18 @@ const getBookWithChaptersFn = createServerFn()
       orderBy: chapters.order,
     });
 
-    return { book, chapters: bookChapters };
+    // Calculate total word count
+    const totalWords = bookChapters.reduce((acc, chapter) => {
+      const words = chapter.content
+        .split(/\s+/)
+        .filter((word) => word.length > 0).length;
+      return acc + words;
+    }, 0);
+
+    // Calculate reading time (225 words per minute is average reading speed)
+    const readingTimeMinutes = Math.ceil(totalWords / 225);
+
+    return { book, chapters: bookChapters, totalWords, readingTimeMinutes };
   });
 
 const createChapterFn = createServerFn()
@@ -178,7 +189,7 @@ function RouteComponent() {
     );
   }
 
-  const { book, chapters = [] } = data;
+  const { book, chapters = [], totalWords, readingTimeMinutes } = data;
 
   return (
     <div className="pt-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -210,6 +221,12 @@ function RouteComponent() {
                   <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded">
                     {chapters.length}{" "}
                     {chapters.length === 1 ? "Chapter" : "Chapters"}
+                  </span>
+                  <span className="bg-gray-100 text-gray-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    {totalWords.toLocaleString()} Words
+                  </span>
+                  <span className="bg-blue-100 text-blue-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    {readingTimeMinutes} min read
                   </span>
                 </div>
               </div>

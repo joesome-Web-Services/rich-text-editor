@@ -117,6 +117,15 @@ export const images = tableCreator("image", {
   data: text("data").notNull(),
 });
 
+export const configuration = tableCreator("configuration", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  heading: text("heading").notNull(),
+  subHeading: text("subHeading").notNull(),
+  email: text("email").notNull(),
+  about: text("about").notNull(),
+});
+
 export const commentsRelations = relations(comments, ({ one }) => ({
   user: one(users, {
     fields: [comments.userId],
@@ -141,3 +150,4 @@ export type Session = typeof sessions.$inferSelect;
 export type Book = typeof books.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+export type Configuration = typeof configuration.$inferSelect;
