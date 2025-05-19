@@ -4,21 +4,26 @@ import { Toolbar } from "./toolbar";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { isAdminFn } from "~/fn/auth";
 
 interface ContentEditorProps {
-  isAdmin: boolean;
   content?: string;
   onContentChange?: (content: string) => void;
   onWordCountChange?: (count: number) => void;
 }
 
 export function ContentEditor({
-  isAdmin,
   content,
   onContentChange,
   onWordCountChange,
 }: ContentEditorProps) {
   const lastSelection = useRef<{ from: number; to: number } | null>(null);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
+  });
 
   const calculateWordCount = (html: string) => {
     const text = html.replace(/<[^>]*>/g, " ");

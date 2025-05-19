@@ -7,6 +7,7 @@ import { database } from "~/db";
 import { chapters } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { configuration } from "~/config";
+import { getTotalReadingTime } from "~/utils/helpers";
 
 const getBooksFn = createServerFn().handler(async () => {
   const allBooks = await database.query.books.findMany({
@@ -17,20 +18,27 @@ const getBooksFn = createServerFn().handler(async () => {
   });
 
   // For each book, get its first chapter (lowest order)
-  const booksWithFirstChapter = await Promise.all(
+  const books = await Promise.all(
     allBooks.map(async (book) => {
-      const firstChapter = await database.query.chapters.findFirst({
+      const allChapters = await database.query.chapters.findMany({
         where: eq(chapters.bookId, book.id),
         orderBy: chapters.order,
       });
+      const totalWords = allChapters.reduce((acc, chapter) => {
+        return acc + chapter.content.split(" ").length;
+      }, 0);
+
+      const readingTimeMinutes = getTotalReadingTime(totalWords);
       return {
         ...book,
-        firstChapter,
+        totalWords,
+        totalChapters: allChapters.length,
+        readingTimeMinutes,
       };
     })
   );
 
-  return { books: booksWithFirstChapter };
+  return { books };
 });
 
 export const Route = createFileRoute("/books/")({
@@ -122,7 +130,18 @@ function RouteComponent() {
                 <div className="w-48 h-64 flex-shrink-0 bg-gray-200 rounded-lg"></div>
               )}
               <div className="flex flex-col flex-grow">
-                <h2 className="text-2xl font-bold mb-2">{book.title}</h2>
+                <h2 className="text-2xl font-bold mb-4">{book.title}</h2>
+                <div className="mb-4 flex items-center gap-4 text-gray-600">
+                  <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    {book.totalChapters} Chapters
+                  </span>
+                  <span className="bg-gray-100 text-gray-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    {book.totalWords} Words
+                  </span>
+                  <span className="bg-blue-100 text-blue-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    {book.readingTimeMinutes} min read
+                  </span>
+                </div>
                 <p className="text-gray-600 flex-grow">{book.description}</p>
               </div>
             </div>

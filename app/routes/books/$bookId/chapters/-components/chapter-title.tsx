@@ -1,20 +1,22 @@
 import { cn } from "~/lib/utils";
 import { useState } from "react";
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { isAdminFn } from "~/fn/auth";
 
 interface ChapterTitleProps {
   title: string;
-  isAdmin: boolean;
   onTitleChange: (newTitle: string) => void;
 }
 
-export function ChapterTitle({
-  title,
-  isAdmin,
-  onTitleChange,
-}: ChapterTitleProps) {
+export function ChapterTitle({ title, onTitleChange }: ChapterTitleProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [localTitle, setLocalTitle] = useState(title);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
+  });
 
   // Keep local title in sync with prop
   React.useEffect(() => {

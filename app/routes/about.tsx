@@ -93,8 +93,12 @@ export const updateConfigurationFn = createServerFn({ method: "POST" })
 
 export const Route = createFileRoute("/about")({
   component: RouteComponent,
-  loader: async () => {
+  loader: async ({ context }) => {
     const isAdmin = await isAdminFn();
+    context.queryClient.ensureQueryData({
+      queryKey: ["configuration"],
+      queryFn: getConfigurationFn,
+    });
     return { isAdmin };
   },
 });

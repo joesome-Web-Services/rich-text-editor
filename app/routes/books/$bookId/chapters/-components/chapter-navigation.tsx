@@ -44,7 +44,7 @@ export function ChapterNavigation({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-[400px] bg-background border border-input shadow-md"
+        className="w-[400px] bg-background border border-input shadow-md max-h-[300px] overflow-y-auto"
       >
         {data.chapters.map((chapter) => (
           <DropdownMenuItem

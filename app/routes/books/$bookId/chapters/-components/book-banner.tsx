@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
   Twitter,
@@ -7,32 +7,42 @@ import {
   Linkedin,
   Link as LinkIcon,
 } from "lucide-react";
-import { getBookFn } from "../-funs";
+import { getBookFn, getChapterFn } from "../-funs";
 import { Button } from "~/components/ui/button";
 import { useToast } from "~/hooks/use-toast";
 import { isAdminFn } from "~/fn/auth";
 
-interface BookTitleProps {
+interface BookBannerProps {
   bookId: string;
-  chapterTitle?: string;
+  chapterId: string;
 }
 
-export function BookTitle({ bookId, chapterTitle }: BookTitleProps) {
-  const { data: bookData } = useSuspenseQuery({
+export function BookBanner({ bookId, chapterId }: BookBannerProps) {
+  const { data: isAdmin } = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
+  });
+
+  const { data: bookData } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBookFn({ data: { bookId } }),
   });
 
-  const { data: isAdmin } = useSuspenseQuery({
-    queryKey: ["isAdmin"],
-    queryFn: () => isAdminFn(),
+  const { data: chapterData } = useQuery({
+    queryKey: ["chapter", chapterId],
+    queryFn: () =>
+      getChapterFn({
+        data: {
+          chapterId,
+        },
+      }),
   });
 
   const { toast } = useToast();
   const url = window.location.href;
 
   const shareLinks = {
-    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(chapterTitle || bookData.book.title)}&url=${encodeURIComponent(url)}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(chapterData?.chapter.title ?? "")}&url=${encodeURIComponent(url)}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
   };
@@ -63,21 +73,14 @@ export function BookTitle({ bookId, chapterTitle }: BookTitleProps) {
           <div className="flex items-center gap-2">
             <Link
               to="/books/$bookId"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              params={{
-                bookId: bookId,
-              }}
-            >
-              <ChevronLeft className="size-5" />
-            </Link>
-            <Link
-              to="/books/$bookId"
               className="flex gap-2 items-center"
               params={{
                 bookId: bookId,
               }}
             >
-              {bookData.book.coverImage?.data ? (
+              <ChevronLeft className="size-5" />
+
+              {bookData?.book.coverImage?.data ? (
                 <img
                   src={bookData.book.coverImage.data}
                   alt={`Cover for ${bookData.book.title}`}
@@ -87,16 +90,22 @@ export function BookTitle({ bookId, chapterTitle }: BookTitleProps) {
                 <div className="size-6 rounded-full bg-gray-200 shadow-md" />
               )}
               <p className="text-xl font-serif text-gray-800">
-                {bookData.book.title}
+                {bookData?.book.title ? (
+                  bookData.book.title
+                ) : (
+                  <div className="h-6 bg-gray-200 rounded w-32 animate-pulse" />
+                )}
               </p>
-              {chapterTitle && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">/</span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">/</span>
+                {chapterData?.chapter.title ? (
                   <p className="text-lg font-serif text-gray-600">
-                    {chapterTitle}
+                    {chapterData.chapter.title}
                   </p>
-                </div>
-              )}
+                ) : (
+                  <div className="h-6 bg-gray-200 rounded w-32 animate-pulse" />
+                )}
+              </div>
             </Link>
           </div>
           <div className="flex items-center gap-2">

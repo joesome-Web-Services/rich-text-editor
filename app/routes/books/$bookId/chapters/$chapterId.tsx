@@ -11,8 +11,8 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { Comments } from "./-components/comments";
 import { getChapterFn, togglePublishFn, updateChapterFn } from "./-funs";
 import { ChapterNavigation } from "./-components/chapter-navigation";
-import { BookTitle } from "./-components/book-title";
-import { ChapterTitle } from "./-components/chapter.title";
+import { BookBanner } from "./-components/book-banner";
+import { ChapterTitle } from "./-components/chapter-title";
 import { ContentEditor } from "./-components/content-editor";
 import { NextChapterButton } from "./-components/next-chapter-button";
 import { SaveStatus } from "./-components/save-status";
@@ -56,15 +56,23 @@ function ChapterPanel({
 
 export const Route = createFileRoute("/books/$bookId/chapters/$chapterId")({
   component: RouteComponent,
-  loader: async () => {
-    const isAdmin = await isAdminFn();
-    return { isAdmin };
+  loader: async ({ context, params }) => {
+    const { chapterId } = params;
+
+    context.queryClient.ensureQueryData({
+      queryKey: ["isAdmin"],
+      queryFn: isAdminFn,
+    });
+
+    context.queryClient.ensureQueryData({
+      queryKey: ["chapter", chapterId],
+      queryFn: () => getChapterFn({ data: { chapterId } }),
+    });
   },
 });
 
 function RouteComponent() {
   const { chapterId, bookId } = Route.useParams();
-  const { isAdmin } = Route.useLoaderData();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
@@ -76,6 +84,11 @@ function RouteComponent() {
     queryKey: ["chapter", chapterId],
     queryFn: () => getChapterFn({ data: { chapterId } }),
     refetchOnWindowFocus: false,
+  });
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
   });
 
   const form = useForm<FormValues>({
@@ -118,7 +131,11 @@ function RouteComponent() {
     }
     saveTimeoutRef.current = setTimeout(() => {
       const values = form.getValues();
-      updateChapterMutation.mutate(values);
+      updateChapterMutation
+        .mutateAsync(values)
+        .then(() =>
+          queryClient.invalidateQueries({ queryKey: ["book-chapters"] })
+        );
     }, SAVE_DELAY);
   };
 
@@ -181,80 +198,6 @@ function RouteComponent() {
     },
   });
 
-  if (isLoading) {
-    return (
-      <>
-        <ReadingProgress />
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-5xl mx-auto px-6 py-4">
-            <div className="space-y-2">
-              <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
-              <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="space-y-8">
-            {/* Chapter Content Card */}
-            <div className="bg-white shadow-lg rounded-xl">
-              {/* Chapter Panel Skeleton */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm rounded-t-xl">
-                <div className="flex items-center gap-4">
-                  <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
-                  <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
-                </div>
-                <div className="h-9 bg-gray-200 rounded w-28 animate-pulse"></div>
-              </div>
-
-              {/* Chapter Content Skeleton */}
-              <div className="px-6 py-10">
-                <div className="max-w-3xl mx-auto">
-                  {/* Title Skeleton */}
-                  <div className="h-10 bg-gray-200 rounded w-3/4 mb-8 animate-pulse"></div>
-
-                  <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
-
-                  {/* Content Editor Skeleton */}
-                  <div className="space-y-4">
-                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                  </div>
-
-                  {/* Next Chapter Button Skeleton */}
-                  <div className="flex justify-end mt-8">
-                    <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Comments Section Skeleton */}
-            <div className="bg-white shadow-lg rounded-xl px-6 py-10">
-              <div className="space-y-6">
-                <div className="h-6 bg-gray-200 rounded w-1/4 mb-6 animate-pulse"></div>
-                {[1, 2].map((i) => (
-                  <div key={i} className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                    </div>
-                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   if (error) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -265,38 +208,16 @@ function RouteComponent() {
     );
   }
 
-  if (!data?.chapter) {
-    return null;
-  }
-
-  const { chapter } = data;
-
   return (
     <>
       <ReadingProgress />
-      <Suspense
-        fallback={
-          <div className="bg-white border-b border-gray-200">
-            <div className="max-w-5xl mx-auto px-6 py-4">
-              <div className="space-y-2">
-                <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        }
-      >
-        <BookTitle bookId={bookId} chapterTitle={data.chapter.title} />
-      </Suspense>
-      {isAdmin && (
-        <SaveStatus
-          isSaving={isSaving}
-          lastSaved={lastSaved}
-          wordCount={wordCount}
-        />
-      )}
+      <BookBanner bookId={bookId} chapterId={chapterId} />
+      <SaveStatus
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        wordCount={wordCount}
+      />
       <div className="relative">
-        {/* Main content - centered */}
         <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="space-y-8">
             <div className="bg-white shadow-lg rounded-xl">
@@ -339,7 +260,6 @@ function RouteComponent() {
                 <div className="max-w-3xl mx-auto">
                   <ChapterTitle
                     title={form.watch("title")}
-                    isAdmin={isAdmin}
                     onTitleChange={(newTitle) => {
                       form.setValue("title", newTitle, {
                         shouldValidate: true,
@@ -351,8 +271,7 @@ function RouteComponent() {
                   <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
 
                   <ContentEditor
-                    isAdmin={isAdmin}
-                    content={chapter.content}
+                    content={data?.chapter.content}
                     onContentChange={(content) => {
                       // Only update form when saving, not on every keystroke
                       if (saveTimeoutRef.current) {
@@ -382,9 +301,7 @@ function RouteComponent() {
             </div>
           </div>
         </div>
-
-        {/* Ad overlay - positioned absolutely */}
-        {/* <div className="absolute top-0 right-0 w-64 h-full pointer-events-none">
+        <div className="absolute top-0 right-0 w-64 h-full pointer-events-none">
           <div className="sticky top-4 pointer-events-auto">
             <GoogleAd
               slot="YOUR_AD_SLOT_ID"
@@ -392,7 +309,7 @@ function RouteComponent() {
               style={{ display: "block", width: "100%", height: "600px" }}
             />
           </div>
-        </div> */}
+        </div>
       </div>
     </>
   );
