@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { getBookChaptersFn } from "../-funs";
 import { Button } from "~/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -32,20 +32,18 @@ export function NextChapterButton({
   const nextChapter = data.chapters[currentIndex + 1];
 
   return (
-    <Button
-      className="gap-2 w-full max-w-2xl mx-auto"
-      onClick={() => {
-        router.navigate({
-          to: "/books/$bookId/chapters/$chapterId",
-          params: {
-            bookId: bookId,
-            chapterId: nextChapter.id.toString(),
-          },
-        });
-      }}
-    >
-      <span>Continue to Next Chapter</span>
-      <ArrowLeft className="h-4 w-4 rotate-180" />
+    <Button className="gap-2 w-full max-w-2xl mx-auto">
+      <Link
+        to="/books/$bookId/chapters/$chapterId"
+        params={{
+          bookId: bookId,
+          chapterId: nextChapter.id.toString(),
+        }}
+        className="flex gap-2 items-center justify-center"
+      >
+        <span>Continue to Next Chapter</span>
+        <ArrowLeft className="h-4 w-4 rotate-180" />
+      </Link>
     </Button>
   );
 }

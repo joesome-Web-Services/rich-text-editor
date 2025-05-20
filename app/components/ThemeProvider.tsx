@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { createContext, useContext, useEffect, useState } from "react";
 import { z } from "vinxi";
@@ -36,7 +36,7 @@ export const setThemeFn = createServerFn({ method: "POST" })
   });
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  const themeQuery = useSuspenseQuery({
+  const themeQuery = useQuery({
     queryKey: ["theme"],
     queryFn: () => getThemeFn(),
   });

@@ -1,19 +1,33 @@
 import { Loader2, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { getChapterFn } from "../-funs";
 
 interface SaveStatusProps {
   isSaving: boolean;
   lastSaved: Date | null;
-  wordCount: number;
+  chapterId: string;
 }
 
 export function SaveStatus({
   isSaving,
   lastSaved,
-  wordCount,
+  chapterId,
 }: SaveStatusProps) {
+  const chapterQuery = useQuery({
+    queryKey: ["chapter", chapterId],
+    queryFn: () => getChapterFn({ data: { chapterId } }),
+    refetchOnWindowFocus: false,
+  });
+
+  const calculateWordCount = (content: string) => {
+    const text = content.replace(/<[^>]*>/g, " ");
+    const words = text.trim().split(/\s+/);
+    return words.length;
+  };
+
   return (
-    <div className="fixed top-[80.5px] left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <div className="fixed top-[80.5px] left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-5xl mx-auto px-6 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           {isSaving ? (
@@ -28,10 +42,20 @@ export function SaveStatus({
                 Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}
               </span>
             </>
-          ) : null}
+          ) : (
+            <>
+              <div className="h-4 w-4 animate-pulse rounded-full bg-gray-200" />
+              <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+            </>
+          )}
         </div>
         <div className="text-sm text-gray-600">
-          {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+          {chapterQuery.data?.chapter.content &&
+            calculateWordCount(chapterQuery.data?.chapter.content)}{" "}
+          {chapterQuery.data?.chapter.content &&
+          calculateWordCount(chapterQuery.data?.chapter.content) === 1
+            ? "word"
+            : "words"}
         </div>
       </div>
     </div>

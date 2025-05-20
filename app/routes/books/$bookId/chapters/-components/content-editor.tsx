@@ -10,13 +10,11 @@ import { isAdminFn } from "~/fn/auth";
 interface ContentEditorProps {
   content?: string;
   onContentChange?: (content: string) => void;
-  onWordCountChange?: (count: number) => void;
 }
 
 export function ContentEditor({
   content,
   onContentChange,
-  onWordCountChange,
 }: ContentEditorProps) {
   const lastSelection = useRef<{ from: number; to: number } | null>(null);
 
@@ -53,9 +51,6 @@ export function ContentEditor({
         if (onContentChange) {
           onContentChange(html);
         }
-        if (onWordCountChange) {
-          onWordCountChange(calculateWordCount(html));
-        }
       }
     },
     editorProps: {
@@ -68,20 +63,19 @@ export function ContentEditor({
 
   // Update editor content when data is loaded
   useEffect(() => {
-    if (editor && content) {
-      const currentContent = editor.getHTML();
-      if (currentContent !== content) {
+    if (editor) {
+      if (content) {
         editor.commands.setContent(content);
         // Restore selection after content update
         if (lastSelection.current) {
           editor.commands.setTextSelection(lastSelection.current);
         }
-        if (onWordCountChange) {
-          onWordCountChange(calculateWordCount(content));
-        }
+      } else {
+        // Clear the editor when content is empty or undefined
+        editor.commands.setContent("");
       }
     }
-  }, [editor, content, onWordCountChange]);
+  }, [editor, content]);
 
   return (
     <div

@@ -104,11 +104,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
         <style>{`
           #nprogress .bar {
-            background: #22c55e !important;
+            background: #fb7185 !important;
             height: 3px;
           }
           #nprogress .peg {
-            box-shadow: 0 0 10px #22c55e, 0 0 5px #22c55e;
+            box-shadow: 0 0 10px #fb7185, 0 0 5px #fb7185;
           }
           #nprogress .spinner-icon {
             display: none;

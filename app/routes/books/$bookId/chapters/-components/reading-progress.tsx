@@ -18,7 +18,7 @@ export function ReadingProgress() {
   }, []);
 
   return (
-    <div className="fixed top-[80px] left-0 right-0 z-[60]">
+    <div className="fixed top-[80px] left-0 right-0 z-[50]">
       <Progress
         value={progress}
         className="h-0.5 rounded-none bg-rose-100 [&>div]:bg-rose-400"

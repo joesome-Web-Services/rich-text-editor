@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { books, chapters } from "~/db/schema";
 import { and, eq } from "drizzle-orm";
-import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { adminMiddleware, unauthenticatedMiddleware } from "~/lib/auth";
 import { isAdminFn } from "~/fn/auth";

@@ -9,7 +9,12 @@ import { Loader2, Globe, EyeOff } from "lucide-react";
 import { isAdminFn } from "~/fn/auth";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Comments } from "./-components/comments";
-import { getChapterFn, togglePublishFn, updateChapterFn } from "./-funs";
+import {
+  getBookChaptersFn,
+  getBookFn,
+  getChapterFn,
+  togglePublishFn,
+} from "./-funs";
 import { ChapterNavigation } from "./-components/chapter-navigation";
 import { BookBanner } from "./-components/book-banner";
 import { ChapterTitle } from "./-components/chapter-title";
@@ -17,16 +22,17 @@ import { ContentEditor } from "./-components/content-editor";
 import { NextChapterButton } from "./-components/next-chapter-button";
 import { SaveStatus } from "./-components/save-status";
 import { ReadingProgress } from "./-components/reading-progress";
-import type { Chapter } from "~/db/schema";
+import { chapters, type Chapter } from "~/db/schema";
 import { GoogleAd } from "~/components/google-ad";
+import { getUserInfoFn } from "~/hooks/use-auth";
+import { createServerFn } from "@tanstack/react-start";
+import { adminMiddleware } from "~/lib/auth";
+import { database } from "~/db";
+import { eq } from "drizzle-orm";
 
 const SAVE_DELAY = 1000;
 
 const formSchema = z.object({
-  title: z
-    .string()
-    .min(2, "Title must be at least 2 characters")
-    .max(100, "Title must be less than 100 characters"),
   content: z.string().min(1, "Content is required"),
 });
 
@@ -35,6 +41,24 @@ type FormValues = z.infer<typeof formSchema>;
 interface ChapterData {
   chapter: Chapter;
 }
+
+export const updateChapterContentFn = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator(
+    z.object({
+      chapterId: z.string(),
+      content: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const [chapter] = await database
+      .update(chapters)
+      .set({
+        content: data.content,
+      })
+      .where(eq(chapters.id, parseInt(data.chapterId)))
+      .returning();
+  });
 
 function ChapterPanel({
   children,
@@ -57,16 +81,31 @@ function ChapterPanel({
 export const Route = createFileRoute("/books/$bookId/chapters/$chapterId")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
-    const { chapterId } = params;
+    const { chapterId, bookId } = params;
 
-    context.queryClient.ensureQueryData({
+    await context.queryClient.ensureQueryData({
       queryKey: ["isAdmin"],
       queryFn: isAdminFn,
     });
 
-    context.queryClient.ensureQueryData({
+    await context.queryClient.ensureQueryData({
       queryKey: ["chapter", chapterId],
       queryFn: () => getChapterFn({ data: { chapterId } }),
+    });
+
+    await context.queryClient.ensureQueryData({
+      queryKey: ["userInfo"],
+      queryFn: () => getUserInfoFn(),
+    });
+
+    await context.queryClient.ensureQueryData({
+      queryKey: ["book", bookId],
+      queryFn: () => getBookFn({ data: { bookId } }),
+    });
+
+    await context.queryClient.ensureQueryData({
+      queryKey: ["book-chapters", bookId],
+      queryFn: () => getBookChaptersFn({ data: { bookId } }),
     });
   },
 });
@@ -76,11 +115,10 @@ function RouteComponent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [wordCount, setWordCount] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date>(new Date());
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
-  const { data, isLoading, error } = useQuery({
+  const chapterQuery = useQuery({
     queryKey: ["chapter", chapterId],
     queryFn: () => getChapterFn({ data: { chapterId } }),
     refetchOnWindowFocus: false,
@@ -94,48 +132,32 @@ function RouteComponent() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
       content: "",
     },
   });
 
   // Update form values when data is loaded
   useEffect(() => {
-    if (data?.chapter) {
+    if (chapterQuery.data?.chapter) {
       form.reset({
-        title: data.chapter.title,
-        content: data.chapter.content,
+        content: chapterQuery.data.chapter.content,
       });
       setLastSaved(new Date());
     }
-  }, [data, form]);
-
-  const calculateWordCount = (content: string) => {
-    // Remove HTML tags and count words
-    const text = content.replace(/<[^>]*>/g, " ");
-    const words = text.trim().split(/\s+/);
-    return words.length;
-  };
-
-  // Update word count when content changes
-  useEffect(() => {
-    if (data?.chapter) {
-      setWordCount(calculateWordCount(data.chapter.content));
-    }
-  }, [data?.chapter]);
+  }, [chapterQuery.data, form]);
 
   const debounceSave = () => {
+    console.log("debounceSave");
     setIsSaving(true);
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(() => {
       const values = form.getValues();
-      updateChapterMutation
-        .mutateAsync(values)
-        .then(() =>
-          queryClient.invalidateQueries({ queryKey: ["book-chapters"] })
-        );
+      updateChapterMutation.mutateAsync({
+        chapterId,
+        content: values.content,
+      });
     }, SAVE_DELAY);
   };
 
@@ -149,12 +171,17 @@ function RouteComponent() {
   }, []);
 
   const updateChapterMutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      updateChapterFn({
+    mutationFn: ({
+      chapterId,
+      content,
+    }: {
+      chapterId: string;
+      content: string;
+    }) =>
+      updateChapterContentFn({
         data: {
           chapterId,
-          title: values.title,
-          content: values.content,
+          content,
         },
       }),
     onSuccess: () => {
@@ -185,7 +212,7 @@ function RouteComponent() {
       queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
       toast({
         title: "Success",
-        description: `Chapter ${data?.chapter.isPublished ? "unpublished" : "published"} successfully!`,
+        description: `Chapter ${chapterQuery.data?.chapter.isPublished ? "unpublished" : "published"} successfully!`,
       });
     },
     onError: (error) => {
@@ -198,11 +225,11 @@ function RouteComponent() {
     },
   });
 
-  if (error) {
+  if (chapterQuery.error) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="text-red-600">
-          Error loading chapter: {error.message}
+          Error loading chapter: {chapterQuery.error.message}
         </div>
       </div>
     );
@@ -215,7 +242,7 @@ function RouteComponent() {
       <SaveStatus
         isSaving={isSaving}
         lastSaved={lastSaved}
-        wordCount={wordCount}
+        chapterId={chapterId}
       />
       <div className="relative">
         <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -223,10 +250,13 @@ function RouteComponent() {
             <div className="bg-white shadow-lg rounded-xl">
               <ChapterPanel
                 left={
-                  <ChapterNavigation
-                    bookId={bookId}
-                    currentChapterId={chapterId}
-                  />
+                  <div className="flex items-center gap-2">
+                    Chapter:
+                    <ChapterNavigation
+                      bookId={bookId}
+                      currentChapterId={chapterId}
+                    />
+                  </div>
                 }
                 right={
                   isAdmin && (
@@ -234,14 +264,16 @@ function RouteComponent() {
                       type="button"
                       variant="secondary"
                       onClick={() =>
-                        togglePublishMutation.mutate(!data?.chapter.isPublished)
+                        togglePublishMutation.mutate(
+                          !chapterQuery.data?.chapter.isPublished
+                        )
                       }
                       disabled={togglePublishMutation.isPending}
                       className="inline-flex items-center gap-2"
                     >
                       {togglePublishMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : data?.chapter.isPublished ? (
+                      ) : chapterQuery.data?.chapter.isPublished ? (
                         <>
                           <EyeOff className="h-4 w-4" />
                           <span>Unpublish</span>
@@ -258,20 +290,12 @@ function RouteComponent() {
               />
               <div className="px-6 py-10">
                 <div className="max-w-3xl mx-auto">
-                  <ChapterTitle
-                    title={form.watch("title")}
-                    onTitleChange={(newTitle) => {
-                      form.setValue("title", newTitle, {
-                        shouldValidate: true,
-                      });
-                      debounceSave();
-                    }}
-                  />
+                  <ChapterTitle chapterId={chapterId} />
 
                   <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
 
                   <ContentEditor
-                    content={data?.chapter.content}
+                    content={chapterQuery.data?.chapter.content}
                     onContentChange={(content) => {
                       // Only update form when saving, not on every keystroke
                       if (saveTimeoutRef.current) {
@@ -284,7 +308,6 @@ function RouteComponent() {
                         debounceSave();
                       }, SAVE_DELAY);
                     }}
-                    onWordCountChange={setWordCount}
                   />
 
                   <div className="flex justify-end mt-8">

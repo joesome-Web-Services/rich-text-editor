@@ -11,12 +11,13 @@ import { isAdminFn } from "~/fn/auth";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import { Toolbar } from "~/routes/books/$bookId/chapters/-components/toolbar";
 import sanitizeHtml from "sanitize-html";
+import { useQuery } from "@tanstack/react-query";
+import { getUserInfoFn } from "~/hooks/use-auth";
 
 export const getConfigurationFn = createServerFn().handler(async () => {
   return await getConfiguration();
@@ -94,27 +95,33 @@ export const updateConfigurationFn = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/about")({
   component: RouteComponent,
   loader: async ({ context }) => {
-    const isAdmin = await isAdminFn();
-    context.queryClient.ensureQueryData({
+    await context.queryClient.ensureQueryData({
       queryKey: ["configuration"],
       queryFn: getConfigurationFn,
     });
-    return { isAdmin };
+
+    await context.queryClient.ensureQueryData({
+      queryKey: ["isAdmin"],
+      queryFn: isAdminFn,
+    });
   },
 });
 
 function EditableContent({
   content,
-  isAdmin,
   onSave,
 }: {
   content: string;
-  isAdmin: boolean;
   onSave: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  const isAdmin = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
+  });
 
   const editor = useEditor({
     extensions: [
@@ -260,9 +267,7 @@ function EditableContent({
 }
 
 function RouteComponent() {
-  const { isAdmin } = Route.useLoaderData();
-
-  const configuration = useSuspenseQuery({
+  const configuration = useQuery({
     queryKey: ["configuration"],
     queryFn: getConfigurationFn,
   });
@@ -274,8 +279,7 @@ function RouteComponent() {
           onSave={() => {
             configuration.refetch();
           }}
-          content={configuration.data.about}
-          isAdmin={isAdmin}
+          content={configuration.data?.about || ""}
         />
       </div>
     </main>

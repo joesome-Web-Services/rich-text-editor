@@ -39,28 +39,6 @@ export const getChapterFn = createServerFn()
     return { chapter };
   });
 
-export const updateChapterFn = createServerFn({ method: "POST" })
-  .middleware([adminMiddleware])
-  .validator(
-    z.object({
-      chapterId: z.string(),
-      title: z.string(),
-      content: z.string(),
-    })
-  )
-  .handler(async ({ data }) => {
-    const [chapter] = await database
-      .update(chapters)
-      .set({
-        title: data.title,
-        content: data.content,
-      })
-      .where(eq(chapters.id, parseInt(data.chapterId)))
-      .returning();
-
-    return { chapter };
-  });
-
 export const togglePublishFn = createServerFn()
   .middleware([adminMiddleware])
   .validator(

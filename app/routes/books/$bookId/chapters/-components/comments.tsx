@@ -1,5 +1,5 @@
 import { Send, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
@@ -39,6 +39,16 @@ interface CommentProps {
   isDeleting?: boolean;
 }
 
+function FormattedDate({ date }: { date: string }) {
+  const [formattedDate, setFormattedDate] = useState(date);
+
+  useEffect(() => {
+    setFormattedDate(format(new Date(date), "MMM d, yyyy 'at' h:mm a"));
+  }, [date]);
+
+  return <span className="text-muted-foreground text-sm">{formattedDate}</span>;
+}
+
 function Comment({
   id,
   author,
@@ -62,7 +72,7 @@ function Comment({
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-semibold">{author}</span>
-          <span className="text-muted-foreground text-sm">{date}</span>
+          <FormattedDate date={date} />
         </div>
         <p className="text-sm text-muted-foreground">{content}</p>
       </div>
@@ -206,8 +216,19 @@ export function Comments() {
 
       <div className="space-y-1 divide-y">
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="space-y-12">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-4 animate-pulse">
+                <div className="h-10 w-10 rounded-full bg-gray-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-24 bg-gray-200 rounded" />
+                    <div className="h-3 w-32 bg-gray-100 rounded" />
+                  </div>
+                  <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : comments.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
@@ -219,10 +240,7 @@ export function Comments() {
               key={comment.id}
               id={comment.id}
               author={comment.user.profile?.displayName || "Anonymous"}
-              date={format(
-                new Date(comment.createdAt),
-                "MMM d, yyyy 'at' h:mm a"
-              )}
+              date={format(new Date(comment.createdAt), "yyyy-MM-dd HH:mm:ss")}
               content={comment.content}
               avatarUrl={comment.user.profile?.image || undefined}
               userId={comment.user.id}
