@@ -15,7 +15,7 @@ export const getBookChaptersFn = createServerFn()
   .handler(async ({ data: { bookId } }) => {
     const bookChapters = await database.query.chapters.findMany({
       where: eq(chapters.bookId, parseInt(bookId)),
-      orderBy: asc(chapters.id),
+      orderBy: asc(chapters.order),
     });
 
     return { chapters: bookChapters };

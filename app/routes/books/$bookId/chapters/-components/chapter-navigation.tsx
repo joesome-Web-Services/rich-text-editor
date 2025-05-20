@@ -38,6 +38,9 @@ export function ChapterNavigation({
     (chapter) => parseInt(currentChapterId) === chapter.id
   );
 
+  // Sort chapters by order
+  const sortedChapters = [...data.chapters].sort((a, b) => a.order - b.order);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -53,7 +56,7 @@ export function ChapterNavigation({
         align="start"
         className="w-[400px] z-[60] bg-background border border-input shadow-md max-h-[300px] overflow-y-auto"
       >
-        {data.chapters.map((chapter) => (
+        {sortedChapters.map((chapter) => (
           <DropdownMenuItem
             key={chapter.id}
             asChild
