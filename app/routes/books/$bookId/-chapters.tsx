@@ -119,6 +119,7 @@ export function Chapters({ bookId }: ChaptersProps) {
               >
                 <div className="flex items-center justify-between">
                   <div className="font-medium">
+                    {chapter.title}
                     {!chapter.isPublished && (
                       <span className="ml-2 text-xs text-gray-600 bg-gray-200 px-2 py-0.5 rounded">
                         Draft
