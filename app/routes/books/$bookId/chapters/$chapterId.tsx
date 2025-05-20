@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "~/components/ui/button";
 import { useToast } from "~/hooks/use-toast";
-import { Loader2, Globe, EyeOff } from "lucide-react";
+import { Loader2, Globe, EyeOff, Plus } from "lucide-react";
 import { isAdminFn } from "~/fn/auth";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Comments } from "./-components/comments";
@@ -41,6 +41,35 @@ type FormValues = z.infer<typeof formSchema>;
 interface ChapterData {
   chapter: Chapter;
 }
+
+export const createChapterFn = createServerFn()
+  .middleware([adminMiddleware])
+  .validator(
+    z.object({
+      bookId: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    // Get the current highest order for chapters in this book
+    const highestOrder = await database.query.chapters.findFirst({
+      where: eq(chapters.bookId, parseInt(data.bookId)),
+      orderBy: (chapters, { desc }) => [desc(chapters.order)],
+    });
+
+    const nextOrder = (highestOrder?.order ?? 0) + 1;
+
+    const chapter = await database
+      .insert(chapters)
+      .values({
+        bookId: parseInt(data.bookId),
+        title: "New Chapter",
+        content: "",
+        order: nextOrder,
+      })
+      .returning();
+
+    return { chapter: chapter[0] };
+  });
 
 export const updateChapterContentFn = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
@@ -122,6 +151,11 @@ function RouteComponent() {
     queryKey: ["chapter", chapterId],
     queryFn: () => getChapterFn({ data: { chapterId } }),
     refetchOnWindowFocus: false,
+  });
+
+  const bookChaptersQuery = useQuery({
+    queryKey: ["book-chapters", bookId],
+    queryFn: () => getBookChaptersFn({ data: { bookId } }),
   });
 
   const { data: isAdmin } = useQuery({
@@ -225,6 +259,23 @@ function RouteComponent() {
     },
   });
 
+  const createChapterMutation = useMutation({
+    mutationFn: () => createChapterFn({ data: { bookId } }),
+    onSuccess: (data: { chapter: { id: number } }) => {
+      queryClient.invalidateQueries({ queryKey: ["book-chapters", bookId] });
+      // Navigate to the new chapter
+      window.location.href = `/books/${bookId}/chapters/${data.chapter.id}`;
+    },
+    onError: (error) => {
+      console.error("Failed to create chapter:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create new chapter. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (chapterQuery.error) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -234,6 +285,12 @@ function RouteComponent() {
       </div>
     );
   }
+
+  const isLastChapter = bookChaptersQuery.data?.chapters.length
+    ? bookChaptersQuery.data.chapters[
+        bookChaptersQuery.data.chapters.length - 1
+      ].id === parseInt(chapterId)
+    : false;
 
   return (
     <>
@@ -310,11 +367,27 @@ function RouteComponent() {
                     }}
                   />
 
-                  <div className="flex justify-end mt-8">
+                  <div className="flex justify-between items-center mt-8">
                     <NextChapterButton
                       bookId={bookId}
                       currentChapterId={chapterId}
                     />
+                    {isAdmin && isLastChapter && (
+                      <Button
+                        onClick={() => createChapterMutation.mutate()}
+                        disabled={createChapterMutation.isPending}
+                        className="inline-flex items-center gap-2 w-full"
+                      >
+                        {createChapterMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4" />
+                            <span>Create Next Chapter</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
