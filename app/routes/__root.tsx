@@ -20,13 +20,13 @@ import { Toaster } from "~/components/ui/toaster";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   {
-    head: () => ({
+    head: ({ loaderData }) => ({
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         ...seo({
-          title: "fix me",
-          description: "fix me",
+          title: (loaderData as any).configuration.name,
+          description: (loaderData as any).configuration.description,
         }),
       ],
       links: [
@@ -60,10 +60,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       ],
     }),
     loader: async ({ context }) => {
-      await context.queryClient.ensureQueryData({
+      const configuration = await context.queryClient.ensureQueryData({
         queryKey: ["configuration"],
         queryFn: getConfigurationFn,
       });
+
+      return {
+        configuration,
+      };
     },
     errorComponent: (props) => {
       return (
