@@ -18,8 +18,8 @@ import { Route as PurchaseImport } from './routes/purchase'
 import { Route as PrivacyPolicyImport } from './routes/privacy-policy'
 import { Route as LoginImport } from './routes/login'
 import { Route as CancelImport } from './routes/cancel'
-import { Route as AboutImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin/route'
+import { Route as AboutRouteImport } from './routes/about/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as BooksIndexImport } from './routes/books/index'
 import { Route as BooksCreateImport } from './routes/books/create'
@@ -71,15 +71,15 @@ const CancelRoute = CancelImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const AboutRoute = AboutImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const AdminRouteRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AboutRouteRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -131,18 +131,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRoute
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutImport
       parentRoute: typeof rootRoute
     }
     '/cancel': {
@@ -236,8 +236,8 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRouteRoute
   '/admin': typeof AdminRouteRoute
-  '/about': typeof AboutRoute
   '/cancel': typeof CancelRoute
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -254,8 +254,8 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRouteRoute
   '/admin': typeof AdminRouteRoute
-  '/about': typeof AboutRoute
   '/cancel': typeof CancelRoute
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -273,8 +273,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/about': typeof AboutRouteRoute
   '/admin': typeof AdminRouteRoute
-  '/about': typeof AboutRoute
   '/cancel': typeof CancelRoute
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -293,8 +293,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/about'
+    | '/admin'
     | '/cancel'
     | '/login'
     | '/privacy-policy'
@@ -310,8 +310,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/about'
+    | '/admin'
     | '/cancel'
     | '/login'
     | '/privacy-policy'
@@ -327,8 +327,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/admin'
     | '/about'
+    | '/admin'
     | '/cancel'
     | '/login'
     | '/privacy-policy'
@@ -346,8 +346,8 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRouteRoute: typeof AboutRouteRoute
   AdminRouteRoute: typeof AdminRouteRoute
-  AboutRoute: typeof AboutRoute
   CancelRoute: typeof CancelRoute
   LoginRoute: typeof LoginRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -364,8 +364,8 @@ export interface RootRouteChildren {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRouteRoute: AboutRouteRoute,
   AdminRouteRoute: AdminRouteRoute,
-  AboutRoute: AboutRoute,
   CancelRoute: CancelRoute,
   LoginRoute: LoginRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
@@ -391,8 +391,8 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/admin",
         "/about",
+        "/admin",
         "/cancel",
         "/login",
         "/privacy-policy",
@@ -410,11 +410,11 @@ export const routeTree = rootRoute
     "/": {
       "filePath": "index.tsx"
     },
+    "/about": {
+      "filePath": "about/route.tsx"
+    },
     "/admin": {
       "filePath": "admin/route.tsx"
-    },
-    "/about": {
-      "filePath": "about.tsx"
     },
     "/cancel": {
       "filePath": "cancel.tsx"
