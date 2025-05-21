@@ -1,7 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { configuration } from "~/config";
+import { useQuery } from "@tanstack/react-query";
+import { getConfigurationFn } from "./header";
 
 export function FooterSection() {
+  const { data: configuration } = useQuery({
+    queryKey: ["configuration"],
+    queryFn: getConfigurationFn,
+  });
+
   return (
     <footer className="border-t border-gray-200 py-16 px-6 bg-gradient-to-b from-white to-rose-50">
       <div className="max-w-4xl mx-auto text-gray-600">
@@ -57,7 +63,7 @@ export function FooterSection() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href={`mailto:${configuration.email}`}
+                  href={`mailto:${configuration?.email}`}
                   className="hover:text-rose-600 transition-colors font-light"
                 >
                   Email Me
@@ -69,7 +75,7 @@ export function FooterSection() {
 
         <div className="text-center pt-8 border-t border-rose-100">
           <p className="font-light text-sm">
-            © {new Date().getFullYear()} {configuration.company}. All rights
+            © {new Date().getFullYear()} {configuration?.company}. All rights
             reserved.
           </p>
         </div>

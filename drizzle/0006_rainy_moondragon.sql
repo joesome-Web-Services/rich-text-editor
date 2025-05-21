@@ -1,0 +1,1 @@
+ALTER TABLE "app_configuration" ADD COLUMN "company" text DEFAULT '' NOT NULL;

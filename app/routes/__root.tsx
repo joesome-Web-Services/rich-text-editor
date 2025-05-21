@@ -12,12 +12,11 @@ import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
 import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
-import { Header } from "~/routes/-components/header";
+import { getConfigurationFn, Header } from "~/routes/-components/header";
 import { FooterSection } from "~/routes/-components/footer";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 import { Toaster } from "~/components/ui/toaster";
-import { configuration } from "~/config";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   {
@@ -26,8 +25,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         ...seo({
-          title: configuration.name,
-          description: configuration.description,
+          title: "fix me",
+          description: "fix me",
         }),
       ],
       links: [
@@ -60,6 +59,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         },
       ],
     }),
+    loader: async ({ context }) => {
+      await context.queryClient.ensureQueryData({
+        queryKey: ["configuration"],
+        queryFn: getConfigurationFn,
+      });
+    },
     errorComponent: (props) => {
       return (
         <RootDocument>

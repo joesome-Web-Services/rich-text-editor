@@ -13,6 +13,7 @@ const defaultConfiguration: Configuration = {
   about:
     "Hello! I'm Sarah, a passionate writer based in San Francisco with a love for crafting narratives that explore human connections and personal growth.",
   email: "hello@thewritingplatform.com",
+  company: "The Writing Platform",
   id: 0,
 };
 

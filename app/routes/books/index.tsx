@@ -6,9 +6,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { chapters } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { configuration } from "~/config";
 import { getTotalReadingTime } from "~/utils/helpers";
 import { useQuery } from "@tanstack/react-query";
+import { getConfigurationFn } from "../-components/header";
 
 const getBooksFn = createServerFn().handler(async () => {
   const allBooks = await database.query.books.findMany({
@@ -68,6 +68,11 @@ function RouteComponent() {
     queryFn: getBooksFn,
   });
 
+  const { data: configuration } = useQuery({
+    queryKey: ["configuration"],
+    queryFn: getConfigurationFn,
+  });
+
   if (books?.books.length === 0) {
     return (
       <main className="mt-32 flex flex-col items-center justify-center min-h-[50vh] p-4">
@@ -106,7 +111,7 @@ function RouteComponent() {
         <div>
           <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-transparent bg-clip-text animate-gradient relative group">
             <span className="text-gray-500 text-lg">Written by</span>{" "}
-            <span className="font-serif">{configuration.name}</span>
+            <span className="font-serif">{configuration?.name}</span>
             <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-red-500 via-red-600 to-red-700 transform scale-x-0 transition-transform group-hover:scale-x-100"></span>
           </h1>
         </div>

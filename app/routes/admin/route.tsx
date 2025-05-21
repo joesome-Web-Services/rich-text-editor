@@ -31,6 +31,7 @@ const configurationSchema = z.object({
   subHeading: z.string().min(1, "Subheading is required"),
   email: z.string().email("Invalid email address"),
   about: z.string().min(1, "About section is required"),
+  company: z.string().min(1, "Company name is required"),
 });
 
 type ConfigurationFormValues = z.infer<typeof configurationSchema>;
@@ -159,6 +160,7 @@ function RouteComponent() {
       subHeading: "",
       email: "",
       about: "",
+      company: "",
     },
   });
 
@@ -171,6 +173,7 @@ function RouteComponent() {
         subHeading: configuration.data.subHeading,
         email: configuration.data.email,
         about: configuration.data.about,
+        company: configuration.data.company,
       });
     }
   }, [configuration.data, form]);
@@ -247,6 +250,20 @@ function RouteComponent() {
                   <FormLabel>Contact Email</FormLabel>
                   <FormControl>
                     <Input {...field} type="email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="company"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

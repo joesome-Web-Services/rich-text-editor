@@ -1,8 +1,14 @@
 import { Button } from "~/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { configuration } from "~/config";
+import { useQuery } from "@tanstack/react-query";
+import { getConfigurationFn } from "./header";
 
 export function HeroSection() {
+  const { data: configuration } = useQuery({
+    queryKey: ["configuration"],
+    queryFn: getConfigurationFn,
+  });
+
   return (
     <header className="relative min-h-screen w-full bg-gradient-to-b from-rose-50/50 to-rose-100/30 flex items-center justify-center">
       {/* Decorative elements */}
@@ -19,7 +25,7 @@ export function HeroSection() {
         <div className="container px-6 lg:px-12 flex flex-col items-center text-center max-w-3xl mx-auto">
           {/* Subtitle */}
           <p className="text-rose-600 text-lg font-medium mb-2 tracking-wide uppercase">
-            Welcome to {configuration.name}
+            Welcome to {configuration?.name}
           </p>
           {/* Removed Author Avatar */}
           <h1 className="font-serif text-6xl sm:text-8xl font-light mb-4 text-gray-900">

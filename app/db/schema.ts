@@ -124,6 +124,7 @@ export const configuration = tableCreator("configuration", {
   subHeading: text("subHeading").notNull(),
   email: text("email").notNull(),
   about: text("about").notNull(),
+  company: text("company").notNull().default(""),
 });
 
 export const commentsRelations = relations(comments, ({ one }) => ({
