@@ -388,6 +388,17 @@ function RouteComponent() {
                         )}
                       </Button>
                     )}
+                    {!isAdmin && isLastChapter && (
+                      <div className="text-center w-full bg-rose-50 p-4 rounded-lg border border-rose-200">
+                        <p className="text-rose-800 font-medium">
+                          You've reached the last chapter of this book!
+                        </p>
+                        <p className="text-rose-600 mt-1">
+                          Create an account to get notified when new chapters
+                          are published.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
