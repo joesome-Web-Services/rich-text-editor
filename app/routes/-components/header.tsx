@@ -59,7 +59,7 @@ export function Header() {
               to="/"
               className={cn(
                 "hidden md:flex transition-colors",
-                "text-gray-600 hover:text-gray-800 font-light"
+                "text-gray-600 hover:text-rose-400 font-light"
               )}
               activeProps={{ className: "text-rose-600" }}
             >
@@ -69,7 +69,7 @@ export function Header() {
               to="/books"
               className={cn(
                 "hidden md:flex transition-colors",
-                "text-gray-600 hover:text-gray-800 font-light"
+                "text-gray-600 hover:text-rose-400 font-light"
               )}
               activeProps={{ className: "text-rose-600" }}
             >
@@ -79,7 +79,7 @@ export function Header() {
               to="/about"
               className={cn(
                 "hidden md:flex transition-colors",
-                "text-gray-600 hover:text-gray-800 font-light"
+                "text-gray-600 hover:text-rose-400 font-light"
               )}
               activeProps={{ className: "text-rose-600" }}
             >
