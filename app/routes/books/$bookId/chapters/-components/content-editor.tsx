@@ -93,7 +93,7 @@ export function ContentEditor({
             }
           }}
         >
-          <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+          <div className="border-b border-input">
             <Toolbar editor={editor} />
           </div>
           <div

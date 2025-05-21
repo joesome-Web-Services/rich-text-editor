@@ -8,7 +8,9 @@ import { useAuth } from "~/hooks/use-auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { z } from "zod";
-import { configuration } from "~/config";
+import { useQuery } from "@tanstack/react-query";
+import { isAdminFn } from "~/fn/auth";
+import { getConfiguration } from "~/data-access/configuration";
 
 export const getBooksFn = createServerFn()
   .validator(
@@ -25,9 +27,22 @@ export const getBooksFn = createServerFn()
     return books;
   });
 
+export const getConfigurationFn = createServerFn().handler(async () => {
+  return await getConfiguration();
+});
+
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuth();
+  const isAdmin = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
+  });
+
+  const configuration = useQuery({
+    queryKey: ["configuration"],
+    queryFn: getConfigurationFn,
+  });
 
   return (
     <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-b border-rose-100 z-50">
@@ -37,7 +52,7 @@ export function Header() {
           <div className="flex items-center gap-12">
             <Link to="/" className="flex items-center gap-3">
               <span className="font-serif text-xl text-gray-800">
-                {configuration.name}
+                {configuration.data?.name || "Loading..."}
               </span>
             </Link>
             <Link
@@ -75,6 +90,18 @@ export function Header() {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-4">
+              {isAdmin.data && (
+                <Link
+                  to="/admin"
+                  className={cn(
+                    "transition-colors",
+                    "text-gray-600 hover:text-gray-800 font-light"
+                  )}
+                  activeProps={{ className: "text-rose-600" }}
+                >
+                  <Button>Admin</Button>
+                </Link>
+              )}
               {user ? (
                 <a href="/api/logout">
                   <Button
@@ -125,7 +152,15 @@ export function Header() {
                   >
                     About
                   </Link>
-
+                  {isAdmin.data && (
+                    <Link
+                      to="/admin"
+                      className="flex items-center py-2 text-lg font-light text-gray-800 hover:text-rose-600 transition-colors"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
                   {user ? (
                     <a
                       href="/api/logout"
