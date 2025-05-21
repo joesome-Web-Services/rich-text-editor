@@ -79,3 +79,36 @@ export const getBookFn = createServerFn()
 
     return { book };
   });
+
+export const deleteChapterFn = createServerFn()
+  .middleware([adminMiddleware])
+  .validator(
+    z.object({
+      chapterId: z.string(),
+      bookId: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    // Delete the chapter
+    await database
+      .delete(chapters)
+      .where(eq(chapters.id, parseInt(data.chapterId)));
+
+    // Get all remaining chapters for this book
+    const remainingChapters = await database.query.chapters.findMany({
+      where: eq(chapters.bookId, parseInt(data.bookId)),
+      orderBy: asc(chapters.order),
+    });
+
+    // Update the order of remaining chapters
+    await database.transaction(async (tx) => {
+      for (let i = 0; i < remainingChapters.length; i++) {
+        await tx
+          .update(chapters)
+          .set({ order: i + 1 })
+          .where(eq(chapters.id, remainingChapters[i].id));
+      }
+    });
+
+    return { success: true };
+  });

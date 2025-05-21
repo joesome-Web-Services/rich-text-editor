@@ -83,7 +83,7 @@ export const updateConfigurationFn = createServerFn({ method: "POST" })
     return await updateConfiguration({ about: sanitizedContent });
   });
 
-export const Route = createFileRoute("/about")({
+export const Route = createFileRoute("/about/")({
   component: RouteComponent,
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData({

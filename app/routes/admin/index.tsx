@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import {
   getConfiguration,
@@ -21,9 +21,10 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import { Loader2 } from "lucide-react";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { ContentEditor } from "~/routes/books/$bookId/chapters/-components/content-editor";
 import sanitizeHtml from "sanitize-html";
+import { useDropzone } from "react-dropzone";
 
 const configurationSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -32,6 +33,7 @@ const configurationSchema = z.object({
   email: z.string().email("Invalid email address"),
   about: z.string().min(1, "About section is required"),
   company: z.string().min(1, "Company name is required"),
+  favicon: z.string().optional(),
 });
 
 type ConfigurationFormValues = z.infer<typeof configurationSchema>;
@@ -105,7 +107,7 @@ export const updateConfigurationFn = createServerFn({ method: "POST" })
     return await updateConfiguration({ ...data, about: sanitizedContent });
   });
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin/")({
   component: RouteComponent,
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData({
@@ -120,9 +122,88 @@ export const Route = createFileRoute("/admin")({
   },
 });
 
+function FaviconUpload({
+  value,
+  onChange,
+  isUploading,
+}: {
+  value?: string | null;
+  onChange: (value: string) => void;
+  isUploading: boolean;
+}) {
+  const { toast } = useToast();
+
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        onChange(base64);
+      };
+      reader.readAsDataURL(file);
+    },
+    [onChange, toast]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".ico"],
+    },
+    maxFiles: 1,
+    maxSize: 1024 * 1024, // 1MB
+  });
+
+  return (
+    <div
+      {...getRootProps()}
+      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
+        ${isDragActive ? "border-primary bg-primary/5" : "border-gray-300 hover:border-primary"}`}
+    >
+      <input {...getInputProps()} />
+      {value ? (
+        <div className="space-y-2">
+          <img
+            src={value}
+            alt="Current favicon"
+            className="w-16 h-16 mx-auto"
+          />
+          <p className="text-sm text-gray-500">
+            {isDragActive
+              ? "Drop the new favicon here"
+              : "Drag and drop a new favicon, or click to select"}
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">
+          {isDragActive
+            ? "Drop the favicon here"
+            : "Drag and drop a favicon, or click to select"}
+        </p>
+      )}
+      {isUploading && (
+        <p className="text-sm text-gray-500 mt-2">Uploading...</p>
+      )}
+    </div>
+  );
+}
+
 function RouteComponent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isUploading, setIsUploading] = useState(false);
 
   const isAdmin = useQuery({
     queryKey: ["isAdmin"],
@@ -161,6 +242,7 @@ function RouteComponent() {
       email: "",
       about: "",
       company: "",
+      favicon: "",
     },
   });
 
@@ -174,12 +256,23 @@ function RouteComponent() {
         email: configuration.data.email,
         about: configuration.data.about,
         company: configuration.data.company,
+        favicon: configuration.data.favicon,
       });
     }
   }, [configuration.data, form]);
 
   if (!isAdmin.data) {
-    return <div>Access denied</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <div className="text-xl font-semibold">Access Denied</div>
+        <Link
+          to="/"
+          className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+        >
+          Return to Homepage
+        </Link>
+      </div>
+    );
   }
 
   if (configuration.isLoading) {
@@ -277,11 +370,35 @@ function RouteComponent() {
                 <FormItem>
                   <FormLabel>About Section</FormLabel>
                   <FormControl>
-                    <ContentEditor
-                      content={field.value}
-                      onContentChange={(content) => {
-                        field.onChange(content);
+                    <div className="max-h-[400px] overflow-y-auto">
+                      <ContentEditor
+                        content={field.value}
+                        onContentChange={(content) => {
+                          field.onChange(content);
+                        }}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="favicon"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Favicon</FormLabel>
+                  <FormControl>
+                    <FaviconUpload
+                      value={field.value}
+                      onChange={(value) => {
+                        setIsUploading(true);
+                        field.onChange(value);
+                        setIsUploading(false);
                       }}
+                      isUploading={isUploading}
                     />
                   </FormControl>
                   <FormMessage />

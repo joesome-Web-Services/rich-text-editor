@@ -1,0 +1,1 @@
+ALTER TABLE "app_configuration" ADD COLUMN "favicon" text DEFAULT '' NOT NULL;

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "~/components/ui/button";
 import { useToast } from "~/hooks/use-toast";
-import { Loader2, Globe, EyeOff, Plus } from "lucide-react";
+import { Loader2, Globe, EyeOff, Plus, Trash2 } from "lucide-react";
 import { isAdminFn } from "~/fn/auth";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Comments } from "./-components/comments";
@@ -14,6 +14,7 @@ import {
   getBookFn,
   getChapterFn,
   togglePublishFn,
+  deleteChapterFn,
 } from "./-funs";
 import { ChapterNavigation } from "./-components/chapter-navigation";
 import { BookBanner } from "./-components/book-banner";
@@ -29,6 +30,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { adminMiddleware } from "~/lib/auth";
 import { database } from "~/db";
 import { eq } from "drizzle-orm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
+import { useRouter } from "@tanstack/react-router";
 
 const SAVE_DELAY = 1000;
 
@@ -143,6 +156,7 @@ function RouteComponent() {
   const { chapterId, bookId } = Route.useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date>(new Date());
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
@@ -276,6 +290,35 @@ function RouteComponent() {
     },
   });
 
+  const deleteChapterMutation = useMutation({
+    mutationFn: () =>
+      deleteChapterFn({
+        data: {
+          chapterId,
+          bookId,
+        },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["book-chapters", bookId] });
+      toast({
+        title: "Success",
+        description: "Chapter deleted successfully!",
+      });
+      router.navigate({
+        to: "/books/$bookId",
+        params: { bookId },
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to delete chapter:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chapter. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (chapterQuery.error) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -317,31 +360,71 @@ function RouteComponent() {
                 }
                 right={
                   isAdmin && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() =>
-                        togglePublishMutation.mutate(
-                          !chapterQuery.data?.chapter.isPublished
-                        )
-                      }
-                      disabled={togglePublishMutation.isPending}
-                      className="inline-flex items-center gap-2"
-                    >
-                      {togglePublishMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : chapterQuery.data?.chapter.isPublished ? (
-                        <>
-                          <EyeOff className="h-4 w-4" />
-                          <span>Unpublish</span>
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="h-4 w-4" />
-                          <span>Publish</span>
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={deleteChapterMutation.isPending}
+                            className="inline-flex items-center gap-2"
+                          >
+                            {deleteChapterMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete Chapter</span>
+                              </>
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will
+                              permanently delete the chapter and reorder the
+                              remaining chapters.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteChapterMutation.mutate()}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete Chapter
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() =>
+                          togglePublishMutation.mutate(
+                            !chapterQuery.data?.chapter.isPublished
+                          )
+                        }
+                        disabled={togglePublishMutation.isPending}
+                        className="inline-flex items-center gap-2"
+                      >
+                        {togglePublishMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : chapterQuery.data?.chapter.isPublished ? (
+                          <>
+                            <EyeOff className="h-4 w-4" />
+                            <span>Unpublish</span>
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="h-4 w-4" />
+                            <span>Publish</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   )
                 }
               />

@@ -51,6 +51,7 @@ export function Header() {
           {/* Logo and Brand */}
           <div className="flex items-center gap-12">
             <Link to="/" className="flex items-center gap-3">
+              <img className="size-12" src={configuration.data?.favicon} />
               <span className="font-serif text-xl text-gray-800">
                 {configuration.data?.name || "Loading..."}
               </span>

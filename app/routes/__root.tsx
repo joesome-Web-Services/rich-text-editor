@@ -17,48 +17,59 @@ import { FooterSection } from "~/routes/-components/footer";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 import { Toaster } from "~/components/ui/toaster";
+import { Configuration } from "~/db/schema";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   {
-    head: ({ loaderData }) => ({
-      meta: [
-        { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
-        ...seo({
-          title: (loaderData as any).configuration.name,
-          description: (loaderData as any).configuration.description,
-        }),
-      ],
-      links: [
-        { rel: "stylesheet", href: appCss },
-        {
-          rel: "apple-touch-icon",
-          sizes: "180x180",
-          href: "/apple-touch-icon.png",
-        },
-        {
-          rel: "icon",
-          type: "image/png",
-          sizes: "32x32",
-          href: "/favicon-32x32.png",
-        },
-        {
-          rel: "icon",
-          type: "image/png",
-          sizes: "16x16",
-          href: "/favicon-16x16.png",
-        },
-        { rel: "manifest", href: "/site.webmanifest", color: "#fffff" },
-        { rel: "icon", href: "/favicon.ico" },
-      ],
-      scripts: [
-        {
-          src: "https://umami-production-101d.up.railway.app/script.js",
-          defer: true,
-          "data-website-id": "bde4216e-7d46-49e4-8bfc-7f28d5a0ba17",
-        },
-      ],
-    }),
+    head: ({ loaderData }) => {
+      const typedConfiguration = (loaderData as any)
+        .configuration as Configuration;
+      const title = typedConfiguration.name;
+      const description = typedConfiguration.name; // TODO: this should be the general site description
+      const base64EncodedFavIcon = typedConfiguration.favicon;
+
+      return {
+        meta: [
+          { charSet: "utf-8" },
+          { name: "viewport", content: "width=device-width, initial-scale=1" },
+          ...seo({
+            title,
+            description,
+          }),
+        ],
+        links: [
+          { rel: "stylesheet", href: appCss },
+          {
+            rel: "apple-touch-icon",
+            sizes: "180x180",
+            href: base64EncodedFavIcon,
+          },
+          {
+            rel: "icon",
+            type: "image/png",
+            sizes: "32x32",
+            href: base64EncodedFavIcon,
+          },
+          {
+            rel: "icon",
+            type: "image/png",
+            sizes: "16x16",
+            href: base64EncodedFavIcon,
+          },
+          {
+            rel: "icon",
+            href: base64EncodedFavIcon,
+          },
+        ],
+        scripts: [
+          {
+            src: "https://umami-production-101d.up.railway.app/script.js",
+            defer: true,
+            "data-website-id": "a40cba1d-b3d3-430f-9174-58ef5ecf69ae",
+          },
+        ],
+      };
+    },
     loader: async ({ context }) => {
       const configuration = await context.queryClient.ensureQueryData({
         queryKey: ["configuration"],
