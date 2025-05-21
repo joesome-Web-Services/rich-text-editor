@@ -173,9 +173,7 @@ function RouteComponent() {
                   <div className="w-48 h-64 flex-shrink-0 bg-gray-200 rounded-lg"></div>
                 )}
                 <div className="flex flex-col flex-grow">
-                  <h2 className="text-2xl font-bold mb-4 font-serif">
-                    {book.title}
-                  </h2>
+                  <h2 className="text-4xl mb-4 font-serif">{book.title}</h2>
                   <div className="mb-4 flex items-center gap-4 text-gray-600">
                     <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded">
                       {book.totalChapters} Chapters
