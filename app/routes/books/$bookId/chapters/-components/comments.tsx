@@ -16,7 +16,7 @@ import {
 } from "~/fn/comments";
 import { useToast } from "~/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import type { Comment as CommentType } from "~/db/schema";
 import { isAdmin } from "~/lib/auth";
 import {
@@ -49,20 +49,6 @@ interface CommentProps {
   heartLoading?: boolean;
 }
 
-function FormattedDate({ date }: { date: string | Date }) {
-  const [formattedDate, setFormattedDate] = useState(() => {
-    const d = typeof date === "string" ? new Date(date) : date;
-    return format(d, "MMM d, yyyy 'at' h:mm a");
-  });
-
-  useEffect(() => {
-    const d = typeof date === "string" ? new Date(date) : date;
-    setFormattedDate(format(d, "MMM d, yyyy 'at' h:mm a"));
-  }, [date]);
-
-  return <span className="text-muted-foreground text-sm">{formattedDate}</span>;
-}
-
 function Comment({
   id,
   author,
@@ -92,7 +78,9 @@ function Comment({
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-semibold">{author}</span>
-          <FormattedDate date={date} />
+          <span className="text-muted-foreground text-sm">
+            {formatDistanceToNow(new Date(date), { addSuffix: true })}
+          </span>
         </div>
         <p className="text-sm text-muted-foreground">{content}</p>
         <div className="flex items-center gap-2 mt-2">
@@ -246,11 +234,7 @@ function CommentThread({
       <Comment
         id={node.id}
         author={node.user.profile?.displayName || "Anonymous"}
-        date={
-          typeof node.createdAt === "string"
-            ? node.createdAt
-            : (node.createdAt?.toISOString?.() ?? "")
-        }
+        date={node.createdAt}
         content={node.content}
         avatarUrl={node.user.profile?.image || undefined}
         userId={node.user.id}
