@@ -1,0 +1,2 @@
+ALTER TABLE "app_profile" ADD COLUMN "imageRefId" integer;--> statement-breakpoint
+ALTER TABLE "app_profile" ADD CONSTRAINT "app_profile_imageRefId_app_image_id_fk" FOREIGN KEY ("imageRefId") REFERENCES "public"."app_image"("id") ON DELETE set null ON UPDATE no action;

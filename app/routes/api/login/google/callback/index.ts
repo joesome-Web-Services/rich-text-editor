@@ -6,8 +6,29 @@ import { createGoogleUserUseCase } from "~/use-cases/users";
 import { googleAuth } from "~/utils/auth";
 import { setSession } from "~/utils/session";
 import { deleteCookie, getCookie } from "vinxi/http";
+import { database } from "~/db";
+import { images, profiles } from "~/db/schema";
 
 const AFTER_LOGIN_URL = "/";
+
+async function downloadAndSaveImage(imageUrl: string) {
+  try {
+    const response = await fetch(imageUrl);
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString("base64");
+    const dataUrl = `data:image/jpeg;base64,${base64}`;
+
+    const [image] = await database
+      .insert(images)
+      .values({ data: dataUrl })
+      .returning();
+
+    return image.id;
+  } catch (error) {
+    console.error("Failed to download and save image:", error);
+    return null;
+  }
+}
 
 export const APIRoute = createAPIFileRoute("/api/login/google/callback")({
   GET: async ({ request, params }) => {
@@ -55,6 +76,24 @@ export const APIRoute = createAPIFileRoute("/api/login/google/callback")({
       }
 
       const userId = await createGoogleUserUseCase(googleUser);
+
+      // Download and save profile image if available
+      if (googleUser.picture) {
+        const imageId = await downloadAndSaveImage(googleUser.picture);
+        if (imageId) {
+          await database
+            .insert(profiles)
+            .values({
+              userId,
+              displayName: googleUser.name,
+              imageRefId: imageId,
+            })
+            .onConflictDoUpdate({
+              target: profiles.userId,
+              set: { imageRefId: imageId, displayName: googleUser.name },
+            });
+        }
+      }
 
       await setSession(userId);
 

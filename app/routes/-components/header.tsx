@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { isAdminFn } from "~/fn/auth";
 import { getConfiguration } from "~/data-access/configuration";
+import { AvatarDropdown } from "./avatar-dropdown";
 
 export const getBooksFn = createServerFn()
   .validator(
@@ -104,14 +105,7 @@ export function Header() {
                 </Link>
               )}
               {user ? (
-                <a href="/api/logout">
-                  <Button
-                    variant="outline"
-                    className="border-rose-200 hover:bg-rose-50"
-                  >
-                    Sign Out
-                  </Button>
-                </a>
+                <AvatarDropdown />
               ) : (
                 <a href="/api/login/google">
                   <Button

@@ -71,6 +71,13 @@
       "when": 1747889796313,
       "tag": "0009_dusty_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1747892253510,
+      "tag": "0010_famous_master_mold",
+      "breakpoints": true
     }
   ]
 }

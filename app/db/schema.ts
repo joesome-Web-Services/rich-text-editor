@@ -31,6 +31,9 @@ export const profiles = tableCreator("profile", {
   displayName: text("displayName"),
   imageId: text("imageId"),
   image: text("image"),
+  imageRefId: integer("imageRefId").references(() => images.id, {
+    onDelete: "set null",
+  }),
   bio: text("bio").notNull().default(""),
 });
 
@@ -46,6 +49,10 @@ export const profilesRelations = relations(profiles, ({ one }) => ({
   user: one(users, {
     fields: [profiles.userId],
     references: [users.id],
+  }),
+  image: one(images, {
+    fields: [profiles.imageRefId],
+    references: [images.id],
   }),
 }));
 
@@ -105,6 +112,12 @@ export const images = tableCreator("image", {
   data: text("data").notNull(),
 });
 
+export type Image = typeof images.$inferSelect;
+
+export const imagesRelations = relations(images, ({ many }) => ({
+  profiles: many(profiles),
+}));
+
 export const configuration = tableCreator("configuration", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -130,7 +143,7 @@ export const comments = tableCreator("comment", {
   content: text("content").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}) as typeof comments;
 
 export const booksRelations = relations(books, ({ one }) => ({
   coverImage: one(images, {
