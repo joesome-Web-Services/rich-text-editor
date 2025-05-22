@@ -6,6 +6,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -99,19 +100,6 @@ export const chapters = tableCreator("chapter", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const comments = tableCreator("comment", {
-  id: serial("id").primaryKey(),
-  chapterId: serial("chapterId")
-    .notNull()
-    .references(() => chapters.id, { onDelete: "cascade" }),
-  userId: serial("userId")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  content: text("content").notNull().default(""),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
 export const images = tableCreator("image", {
   id: serial("id").primaryKey(),
   data: text("data").notNull(),
@@ -128,7 +116,30 @@ export const configuration = tableCreator("configuration", {
   favicon: text("favicon").notNull().default(""),
 });
 
-export const commentsRelations = relations(comments, ({ one }) => ({
+export const comments = tableCreator("comment", {
+  id: serial("id").primaryKey(),
+  chapterId: serial("chapterId")
+    .notNull()
+    .references(() => chapters.id, { onDelete: "cascade" }),
+  userId: serial("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  parentCommentId: integer("parentCommentId").references(() => comments.id, {
+    onDelete: "cascade",
+  }),
+  content: text("content").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const booksRelations = relations(books, ({ one }) => ({
+  coverImage: one(images, {
+    fields: [books.coverImageId],
+    references: [images.id],
+  }),
+}));
+
+export const commentsRelations = relations(comments, ({ one, many }) => ({
   user: one(users, {
     fields: [comments.userId],
     references: [users.id],
@@ -137,12 +148,39 @@ export const commentsRelations = relations(comments, ({ one }) => ({
     fields: [comments.chapterId],
     references: [chapters.id],
   }),
+  parent: one(comments, {
+    fields: [comments.parentCommentId],
+    references: [comments.id],
+  }),
+  children: many(comments),
 }));
 
-export const booksRelations = relations(books, ({ one }) => ({
-  coverImage: one(images, {
-    fields: [books.coverImageId],
-    references: [images.id],
+export const commentHearts = tableCreator(
+  "comment_heart",
+  {
+    id: serial("id").primaryKey(),
+    userId: serial("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    commentId: serial("commentId")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("user_comment_idx").on(table.userId, table.commentId),
+    uniqueIndex("user_comment_unique_idx").on(table.userId, table.commentId),
+  ]
+);
+
+export const commentHeartsRelations = relations(commentHearts, ({ one }) => ({
+  user: one(users, {
+    fields: [commentHearts.userId],
+    references: [users.id],
+  }),
+  comment: one(comments, {
+    fields: [commentHearts.commentId],
+    references: [comments.id],
   }),
 }));
 

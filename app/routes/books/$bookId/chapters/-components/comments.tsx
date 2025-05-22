@@ -1,4 +1,4 @@
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
@@ -10,6 +10,9 @@ import {
   createCommentFn,
   getChapterCommentsFn,
   deleteCommentFn,
+  heartCommentFn,
+  unheartCommentFn,
+  getCommentHeartsFn,
 } from "~/fn/comments";
 import { useToast } from "~/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -27,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
+import { UseMutationResult } from "@tanstack/react-query";
 
 interface CommentProps {
   id: number;
@@ -37,13 +41,23 @@ interface CommentProps {
   userId: number;
   onDelete?: () => void;
   isDeleting?: boolean;
+  heartCount?: number;
+  heartedByUser?: boolean;
+  onHeart?: () => void;
+  onUnheart?: () => void;
+  canHeart?: boolean;
+  heartLoading?: boolean;
 }
 
-function FormattedDate({ date }: { date: string }) {
-  const [formattedDate, setFormattedDate] = useState(date);
+function FormattedDate({ date }: { date: string | Date }) {
+  const [formattedDate, setFormattedDate] = useState(() => {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return format(d, "MMM d, yyyy 'at' h:mm a");
+  });
 
   useEffect(() => {
-    setFormattedDate(format(new Date(date), "MMM d, yyyy 'at' h:mm a"));
+    const d = typeof date === "string" ? new Date(date) : date;
+    setFormattedDate(format(d, "MMM d, yyyy 'at' h:mm a"));
   }, [date]);
 
   return <span className="text-muted-foreground text-sm">{formattedDate}</span>;
@@ -58,6 +72,12 @@ function Comment({
   userId,
   onDelete,
   isDeleting,
+  heartCount = 0,
+  heartedByUser = false,
+  onHeart,
+  onUnheart,
+  canHeart = false,
+  heartLoading = false,
 }: CommentProps) {
   const user = useAuth();
   const isOwner = user?.id === userId;
@@ -75,6 +95,21 @@ function Comment({
           <FormattedDate date={date} />
         </div>
         <p className="text-sm text-muted-foreground">{content}</p>
+        <div className="flex items-center gap-2 mt-2">
+          <Button
+            variant={heartedByUser ? "default" : "ghost"}
+            size="icon"
+            className={`text-muted-foreground ${heartedByUser ? "text-red-500" : ""}`}
+            onClick={heartedByUser ? onUnheart : onHeart}
+            disabled={!canHeart || heartLoading}
+            title={heartedByUser ? "Unheart" : "Heart"}
+          >
+            <Heart
+              className={`h-4 w-4 ${heartedByUser ? "fill-red-500" : ""}`}
+            />
+          </Button>
+          <span className="text-xs text-muted-foreground">{heartCount}</span>
+        </div>
       </div>
       {canDelete && onDelete && (
         <AlertDialog>
@@ -128,8 +163,190 @@ type CommentWithUser = CommentType & {
   };
 };
 
+// Utility to build a tree from flat comments
+function buildCommentTree(comments: CommentWithUser[]): CommentTreeNode[] {
+  const map = new Map<number, CommentTreeNode>();
+  const roots: CommentTreeNode[] = [];
+  comments.forEach((comment) => {
+    map.set(comment.id, { ...comment, children: [] });
+  });
+  map.forEach((node) => {
+    if (node.parentCommentId && map.has(node.parentCommentId)) {
+      map.get(node.parentCommentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  return roots;
+}
+
+type CommentTreeNode = CommentWithUser & { children: CommentTreeNode[] };
+
+function CommentThread({
+  node,
+  onReply,
+  onDelete,
+  isDeleting,
+  replyingTo,
+  createComment,
+  user,
+  heartCount = 0,
+  heartedByUser = false,
+  onHeart,
+  onUnheart,
+  canHeart = false,
+  heartLoading = false,
+  heartData,
+  heartComment,
+  unheartComment,
+  userId,
+}: {
+  node: CommentTreeNode;
+  onReply: (id: number | null) => void;
+  onDelete: (id: number) => void;
+  isDeleting: boolean;
+  replyingTo: number | null;
+  createComment: ReturnType<
+    typeof useMutation<
+      { [x: string]: any } | undefined,
+      Error,
+      { content: string; parentCommentId?: number | null },
+      unknown
+    >
+  >;
+  user: ReturnType<typeof useAuth>;
+  heartCount?: number;
+  heartedByUser?: boolean;
+  onHeart?: () => void;
+  onUnheart?: () => void;
+  canHeart?: boolean;
+  heartLoading?: boolean;
+  heartData?: {
+    counts: Record<number, number>;
+    userHearted: Record<number, boolean>;
+  };
+  heartComment?: UseMutationResult<
+    { success: boolean },
+    Error,
+    number,
+    unknown
+  >;
+  unheartComment?: UseMutationResult<
+    { success: boolean },
+    Error,
+    number,
+    unknown
+  >;
+  userId?: number;
+}) {
+  const [replyContent, setReplyContent] = useState("");
+  const isReplying = replyingTo === node.id;
+  return (
+    <div className="ml-0 md:ml-8 mt-4">
+      <Comment
+        id={node.id}
+        author={node.user.profile?.displayName || "Anonymous"}
+        date={
+          typeof node.createdAt === "string"
+            ? node.createdAt
+            : (node.createdAt?.toISOString?.() ?? "")
+        }
+        content={node.content}
+        avatarUrl={node.user.profile?.image || undefined}
+        userId={node.user.id}
+        onDelete={() => onDelete(node.id)}
+        isDeleting={isDeleting}
+        heartCount={heartCount}
+        heartedByUser={heartedByUser}
+        onHeart={onHeart}
+        onUnheart={onUnheart}
+        canHeart={canHeart}
+        heartLoading={heartLoading}
+      />
+      {user && (
+        <div className="mb-2">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => onReply(node.id)}
+            className="px-0"
+          >
+            Reply
+          </Button>
+        </div>
+      )}
+      {isReplying && (
+        <div className="mb-4">
+          <Textarea
+            placeholder="Write a reply..."
+            value={replyContent}
+            onChange={(e) => setReplyContent(e.target.value)}
+            className="flex-1"
+            disabled={createComment.isPending}
+          />
+          <div className="flex gap-2 mt-2">
+            <Button
+              onClick={() => {
+                if (!replyContent.trim()) return;
+                createComment.mutate({
+                  content: replyContent,
+                  parentCommentId: node.id,
+                });
+                setReplyContent("");
+              }}
+              disabled={createComment.isPending || !replyContent.trim()}
+            >
+              {createComment.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+            <Button variant="ghost" onClick={() => onReply(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+      {node.children.length > 0 &&
+        heartData &&
+        heartComment &&
+        unheartComment &&
+        userId !== undefined && (
+          <div className="ml-4 border-l border-muted-foreground/10 pl-4">
+            {node.children.map((child: CommentTreeNode) => (
+              <CommentThread
+                key={child.id}
+                node={child}
+                onReply={onReply}
+                onDelete={onDelete}
+                isDeleting={isDeleting && child.id === node.id}
+                replyingTo={replyingTo}
+                createComment={createComment}
+                user={user}
+                heartCount={heartData.counts[child.id] || 0}
+                heartedByUser={!!heartData.userHearted[child.id]}
+                onHeart={() => heartComment.mutate(child.id)}
+                onUnheart={() => unheartComment.mutate(child.id)}
+                canHeart={user && user.id !== child.user.id}
+                heartLoading={
+                  heartComment.isPending || unheartComment.isPending
+                }
+                heartData={heartData}
+                heartComment={heartComment}
+                unheartComment={unheartComment}
+                userId={userId}
+              />
+            ))}
+          </div>
+        )}
+    </div>
+  );
+}
+
 export function Comments() {
   const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const { toast } = useToast();
   const user = useAuth();
   const { chapterId } = useParams({
@@ -142,11 +359,43 @@ export function Comments() {
     queryFn: () => getChapterCommentsFn({ data: { chapterId } }),
   });
 
-  const createComment = useMutation({
-    mutationFn: (content: string) =>
-      createCommentFn({ data: { chapterId, content } }),
+  // Heart state
+  const commentIds = (comments as CommentWithUser[]).map((c) => c.id);
+  const {
+    data: heartData = {
+      counts: {} as Record<number, number>,
+      userHearted: {} as Record<number, boolean>,
+    },
+    refetch: refetchHearts,
+    isFetching: isFetchingHearts,
+  } = useQuery<{
+    counts: Record<number, number>;
+    userHearted: Record<number, boolean>;
+  }>({
+    queryKey: ["commentHearts", commentIds],
+    queryFn: () =>
+      user
+        ? getCommentHeartsFn({ data: { commentIds } })
+        : Promise.resolve({ counts: {}, userHearted: {} }),
+    enabled: commentIds.length > 0 && !!user,
+  });
+
+  const createComment = useMutation<
+    { [x: string]: any } | undefined,
+    Error,
+    { content: string; parentCommentId?: number | null },
+    unknown
+  >({
+    mutationFn: ({
+      content,
+      parentCommentId,
+    }: {
+      content: string;
+      parentCommentId?: number | null;
+    }) => createCommentFn({ data: { chapterId, content, parentCommentId } }),
     onSuccess: () => {
       setNewComment("");
+      setReplyingTo(null);
       queryClient.invalidateQueries({ queryKey: ["comments", chapterId] });
       toast({
         title: "Success",
@@ -180,10 +429,50 @@ export function Comments() {
     },
   });
 
+  const heartComment = useMutation({
+    mutationFn: (commentId: number) => heartCommentFn({ data: { commentId } }),
+    onSuccess: () => refetchHearts(),
+  });
+  const unheartComment = useMutation({
+    mutationFn: (commentId: number) =>
+      unheartCommentFn({ data: { commentId } }),
+    onSuccess: () => refetchHearts(),
+  });
+
   const handleSubmit = () => {
     if (!newComment.trim()) return;
-    createComment.mutate(newComment);
+    createComment.mutate({ content: newComment, parentCommentId: null });
   };
+
+  // Build the comment tree
+  const commentTree = buildCommentTree(comments as CommentWithUser[]);
+
+  function renderThread(node: CommentTreeNode) {
+    return (
+      <CommentThread
+        key={node.id}
+        node={node}
+        onReply={setReplyingTo}
+        onDelete={(id) => deleteComment.mutate(id)}
+        isDeleting={
+          deleteComment.isPending && deleteComment.variables === node.id
+        }
+        replyingTo={replyingTo}
+        createComment={createComment}
+        user={user}
+        heartCount={heartData.counts[node.id] || 0}
+        heartedByUser={!!heartData.userHearted[node.id]}
+        onHeart={() => heartComment.mutate(node.id)}
+        onUnheart={() => unheartComment.mutate(node.id)}
+        canHeart={user && user.id !== node.user.id}
+        heartLoading={heartComment.isPending || unheartComment.isPending}
+        heartData={heartData}
+        heartComment={heartComment}
+        unheartComment={unheartComment}
+        userId={user?.id}
+      />
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto mt-12">
@@ -230,27 +519,12 @@ export function Comments() {
               </div>
             ))}
           </div>
-        ) : comments.length === 0 ? (
+        ) : commentTree.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             No comments yet. Be the first to comment!
           </p>
         ) : (
-          (comments as CommentWithUser[]).map((comment) => (
-            <Comment
-              key={comment.id}
-              id={comment.id}
-              author={comment.user.profile?.displayName || "Anonymous"}
-              date={format(new Date(comment.createdAt), "yyyy-MM-dd HH:mm:ss")}
-              content={comment.content}
-              avatarUrl={comment.user.profile?.image || undefined}
-              userId={comment.user.id}
-              onDelete={() => deleteComment.mutate(comment.id)}
-              isDeleting={
-                deleteComment.isPending &&
-                deleteComment.variables === comment.id
-              }
-            />
-          ))
+          commentTree.map(renderThread)
         )}
       </div>
     </div>

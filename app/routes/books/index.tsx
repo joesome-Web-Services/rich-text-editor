@@ -29,11 +29,15 @@ const getBooksFn = createServerFn().handler(async () => {
         return acc + chapter.content.split(" ").length;
       }, 0);
 
+      const publishedChapters = allChapters.filter(
+        (chapter) => chapter.isPublished
+      );
+
       const readingTimeMinutes = getTotalReadingTime(totalWords);
       return {
         ...book,
         totalWords,
-        totalChapters: allChapters.length,
+        totalChapters: publishedChapters.length,
         readingTimeMinutes,
       };
     })
