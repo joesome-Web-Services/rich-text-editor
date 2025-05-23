@@ -14,23 +14,7 @@ import {
 } from "~/routes/books/-components/book-form";
 import { useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-
-const getBookFn = createServerFn()
-  .validator(z.object({ bookId: z.string() }))
-  .handler(async ({ data: { bookId } }) => {
-    const book = await database.query.books.findFirst({
-      where: eq(books.id, parseInt(bookId)),
-      with: {
-        coverImage: true,
-      },
-    });
-
-    if (!book) {
-      throw new Error("Book not found");
-    }
-
-    return { book };
-  });
+import { getBookFn } from "./chapters/-funs";
 
 const updateBookFn = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
@@ -83,7 +67,7 @@ function EditBook() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery({
+  const bookQuery = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBookFn({ data: { bookId } }),
   });
@@ -107,7 +91,7 @@ function EditBook() {
     });
   };
 
-  if (isLoading) {
+  if (bookQuery.isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
@@ -127,11 +111,11 @@ function EditBook() {
     <BookForm
       mode="edit"
       initialValues={
-        data?.book
+        bookQuery.data?.book
           ? {
-              title: data.book.title,
-              description: data.book.description,
-              image: data.book.coverImage?.data,
+              title: bookQuery.data.book.title,
+              description: bookQuery.data.book.description,
+              image: bookQuery.data.book.coverImage?.data,
             }
           : undefined
       }
@@ -142,7 +126,7 @@ function EditBook() {
           params: { bookId },
         })
       }
-      isLoading={isLoading}
+      isLoading={bookQuery.isLoading}
     />
   );
 }

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { Pencil, BookOpen } from "lucide-react";
 import { Skeleton } from "~/components/ui/skeleton";
-import { type Book, type Chapter } from "~/db/schema";
+import { type Book, type Chapter, type BookWithRelations } from "~/db/schema";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBookWithChaptersFn } from "./index";
 import { getTotalReadingTime } from "~/utils/helpers";
@@ -35,7 +35,7 @@ export function BookDetails({ bookId }: BookDetailsProps) {
     );
   }
 
-  const book = bookData?.book;
+  const book = bookData?.book as BookWithRelations | undefined;
   const chapters = bookData?.chapters ?? [];
   const totalWords = bookData?.totalWords ?? 0;
   const readingTimeMinutes = bookData?.readingTimeMinutes ?? 0;
@@ -49,7 +49,7 @@ export function BookDetails({ bookId }: BookDetailsProps) {
             <Skeleton className="w-48 h-64 rounded-lg" />
           ) : book?.coverImage?.data ? (
             <img
-              src={book.coverImage.data}
+              src={(book.coverImage as { data: string }).data}
               alt={`Cover for ${book.title}`}
               className="w-48 h-64 object-cover rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300"
             />

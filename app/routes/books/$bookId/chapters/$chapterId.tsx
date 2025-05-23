@@ -29,7 +29,7 @@ import { getUserInfoFn } from "~/hooks/use-auth";
 import { createServerFn } from "@tanstack/react-start";
 import { adminMiddleware } from "~/lib/auth";
 import { database } from "~/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,6 +102,24 @@ export const updateChapterContentFn = createServerFn({ method: "POST" })
       .returning();
   });
 
+export const incrementChapterReadCountFn = createServerFn()
+  .validator(
+    z.object({
+      chapterId: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const [chapter] = await database
+      .update(chapters)
+      .set({
+        readCount: sql`"readCount" + 1`,
+      })
+      .where(eq(chapters.id, parseInt(data.chapterId)))
+      .returning();
+
+    return { chapter };
+  });
+
 function ChapterPanel({
   children,
   left,
@@ -160,6 +178,74 @@ function RouteComponent() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date>(new Date());
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const [hasIncrementedReadCount, setHasIncrementedReadCount] = useState(false);
+  const hasFiredIncrementRef = useRef(false);
+
+  const isAdminQuery = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: isAdminFn,
+  });
+
+  // Reset increment ref when chapter changes
+  useEffect(() => {
+    hasFiredIncrementRef.current = false;
+  }, [chapterId]);
+
+  // Check if this chapter has been counted as read in this session
+  useEffect(() => {
+    const readChapters = JSON.parse(
+      localStorage.getItem("readChapters") || "[]"
+    );
+    setHasIncrementedReadCount(readChapters.includes(chapterId));
+  }, [chapterId]);
+
+  // Handle scroll to bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        hasIncrementedReadCount ||
+        isAdminQuery.data ||
+        hasFiredIncrementRef.current
+      )
+        return;
+
+      const contentElement = document.getElementById("chapter-content");
+      if (!contentElement) return;
+
+      const rect = contentElement.getBoundingClientRect();
+      const isFullyVisible = rect.bottom <= window.innerHeight;
+
+      if (isFullyVisible) {
+        const readChapters = JSON.parse(
+          localStorage.getItem("readChapters") || "[]"
+        );
+        if (!readChapters.includes(chapterId)) {
+          hasFiredIncrementRef.current = true;
+          // Increment read count
+          incrementChapterReadCountFn({ data: { chapterId } })
+            .then(() => {
+              // Update local storage
+              readChapters.push(chapterId);
+              localStorage.setItem(
+                "readChapters",
+                JSON.stringify(readChapters)
+              );
+              setHasIncrementedReadCount(true);
+            })
+            .catch((error) => {
+              console.error("Failed to increment read count:", error);
+              // Reset the ref if the increment failed
+              hasFiredIncrementRef.current = false;
+            });
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [chapterId, hasIncrementedReadCount, isAdminQuery.data]);
 
   const chapterQuery = useQuery({
     queryKey: ["chapter", chapterId],
@@ -170,11 +256,6 @@ function RouteComponent() {
   const bookChaptersQuery = useQuery({
     queryKey: ["book-chapters", bookId],
     queryFn: () => getBookChaptersFn({ data: { bookId } }),
-  });
-
-  const { data: isAdmin } = useQuery({
-    queryKey: ["isAdmin"],
-    queryFn: isAdminFn,
   });
 
   const form = useForm<FormValues>({
@@ -195,7 +276,6 @@ function RouteComponent() {
   }, [chapterQuery.data, form]);
 
   const debounceSave = () => {
-    console.log("debounceSave");
     setIsSaving(true);
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -359,7 +439,7 @@ function RouteComponent() {
                   </div>
                 }
                 right={
-                  isAdmin && (
+                  isAdminQuery.data && (
                     <div className="flex items-center gap-2">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -434,28 +514,30 @@ function RouteComponent() {
 
                   <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
 
-                  <ContentEditor
-                    content={chapterQuery.data?.chapter.content}
-                    onContentChange={(content) => {
-                      // Only update form when saving, not on every keystroke
-                      if (saveTimeoutRef.current) {
-                        clearTimeout(saveTimeoutRef.current);
-                      }
-                      saveTimeoutRef.current = setTimeout(() => {
-                        form.setValue("content", content, {
-                          shouldValidate: true,
-                        });
-                        debounceSave();
-                      }, SAVE_DELAY);
-                    }}
-                  />
+                  <div id="chapter-content">
+                    <ContentEditor
+                      content={chapterQuery.data?.chapter.content}
+                      onContentChange={(content) => {
+                        // Only update form when saving, not on every keystroke
+                        if (saveTimeoutRef.current) {
+                          clearTimeout(saveTimeoutRef.current);
+                        }
+                        saveTimeoutRef.current = setTimeout(() => {
+                          form.setValue("content", content, {
+                            shouldValidate: true,
+                          });
+                          debounceSave();
+                        }, SAVE_DELAY);
+                      }}
+                    />
+                  </div>
 
                   <div className="flex justify-between items-center mt-8">
                     <NextChapterButton
                       bookId={bookId}
                       currentChapterId={chapterId}
                     />
-                    {isAdmin && isLastChapter && (
+                    {isAdminQuery.data && isLastChapter && (
                       <Button
                         onClick={() => createChapterMutation.mutate()}
                         disabled={createChapterMutation.isPending}
@@ -471,7 +553,7 @@ function RouteComponent() {
                         )}
                       </Button>
                     )}
-                    {!isAdmin && isLastChapter && (
+                    {!isAdminQuery.data && isLastChapter && (
                       <div className="text-center w-full bg-rose-50 p-4 rounded-lg border border-rose-200">
                         <p className="text-rose-800 font-medium">
                           You've reached the last chapter of this book!

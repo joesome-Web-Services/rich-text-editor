@@ -6,6 +6,8 @@ import {
   Facebook,
   Linkedin,
   Link as LinkIcon,
+  BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { getBookFn, getChapterFn } from "../-funs";
 import { Button } from "~/components/ui/button";
@@ -13,6 +15,9 @@ import { useToast } from "~/hooks/use-toast";
 import { isAdminFn } from "~/fn/auth";
 import { useState } from "react";
 import { useEffect } from "react";
+import { getChapterCommentsFn } from "~/fn/comments";
+
+const COMMENT_SCROLL_OFFSET = -200;
 
 interface BookBannerProps {
   bookId: string;
@@ -38,6 +43,11 @@ export function BookBanner({ bookId, chapterId }: BookBannerProps) {
           chapterId,
         },
       }),
+  });
+
+  const { data: comments = [] } = useQuery({
+    queryKey: ["comments", chapterId],
+    queryFn: () => getChapterCommentsFn({ data: { chapterId } }),
   });
 
   const { toast } = useToast();
@@ -75,9 +85,7 @@ export function BookBanner({ bookId, chapterId }: BookBannerProps) {
   };
 
   return (
-    <div
-      className={`${isAdmin ? "pt-16" : "pt-4"} bg-white border-b border-gray-200 pb-4`}
-    >
+    <div className={`pt-16 bg-white border-b border-gray-200 pb-4`}>
       <div className="max-w-5xl mx-auto px-4">
         <p className="text-sm text-gray-500 mb-2">You are reading</p>
         <div className="flex items-center justify-between">
@@ -119,6 +127,35 @@ export function BookBanner({ bookId, chapterId }: BookBannerProps) {
               </div>
             </Link>
           </div>
+
+          <div className="flex-1 flex justify-center items-center gap-6">
+            {chapterData?.chapter.readCount !== undefined && (
+              <div className="flex items-center gap-1 text-sm text-gray-500">
+                <BookOpen className="h-4 w-4" />
+                <span>{chapterData.chapter.readCount}</span>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => {
+                const commentsSection =
+                  document.getElementById("comment-container");
+                if (commentsSection) {
+                  const y =
+                    commentsSection.getBoundingClientRect().top +
+                    window.pageYOffset +
+                    COMMENT_SCROLL_OFFSET;
+                  window.scrollTo({ top: y, behavior: "smooth" });
+                }
+              }}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{comments.length}</span>
+            </Button>
+          </div>
+
           <div className="flex items-center gap-2">
             Share on
             <Button

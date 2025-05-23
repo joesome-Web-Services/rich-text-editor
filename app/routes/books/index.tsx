@@ -4,7 +4,7 @@ import { PlusCircle } from "lucide-react";
 import { isAdminFn } from "~/fn/auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
-import { chapters } from "~/db/schema";
+import { BookWithRelations, chapters } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { getTotalReadingTime } from "~/utils/helpers";
 import { useQuery } from "@tanstack/react-query";
@@ -35,7 +35,7 @@ const getBooksFn = createServerFn().handler(async () => {
 
       const readingTimeMinutes = getTotalReadingTime(totalWords);
       return {
-        ...book,
+        ...(book as BookWithRelations),
         totalWords,
         totalChapters: publishedChapters.length,
         readingTimeMinutes,

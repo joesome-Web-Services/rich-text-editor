@@ -1,0 +1,1 @@
+ALTER TABLE "app_profile" DROP COLUMN "image";

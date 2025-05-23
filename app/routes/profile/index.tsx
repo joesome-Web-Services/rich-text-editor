@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { database } from "~/db";
-import { profiles, images } from "~/db/schema";
+import { profiles, images, ProfileWithRelations } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "~/hooks/use-toast";
@@ -31,7 +31,7 @@ const getProfileFn = createServerFn()
         image: true,
       },
     });
-    return { profile };
+    return { profile } as { profile: ProfileWithRelations };
   });
 
 const updateProfileFn = createServerFn({ method: "POST" })
@@ -54,7 +54,6 @@ const updateProfileFn = createServerFn({ method: "POST" })
       .update(profiles)
       .set({
         displayName: data.displayName,
-        image: data.image,
         imageRefId: imageId,
       })
       .where(eq(profiles.userId, context.userId))
@@ -118,8 +117,7 @@ function ProfilePage() {
     );
   }
 
-  // Get the image data from either the image relation or the direct image field
-  const currentImage = data?.profile?.image?.data || data?.profile?.image || "";
+  const currentImage = data?.profile?.image?.data || "";
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -460,7 +460,9 @@ export function Comments() {
 
   return (
     <div className="max-w-3xl mx-auto mt-12">
-      <h2 className="text-2xl font-bold mb-6">Comments</h2>
+      <h2 id="comment-container" className="text-2xl font-bold mb-6">
+        Comments
+      </h2>
 
       {user && (
         <div className="mb-8">

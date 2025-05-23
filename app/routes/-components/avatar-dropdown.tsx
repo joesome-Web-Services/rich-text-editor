@@ -15,7 +15,7 @@ import { profiles } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { useQuery } from "@tanstack/react-query";
 import { unauthenticatedMiddleware } from "~/lib/auth";
-import type { Profile } from "~/db/schema";
+import type { Profile, ProfileWithRelations } from "~/db/schema";
 import { useAuth } from "~/hooks/use-auth";
 
 export const getUserProfileFn = createServerFn()
@@ -27,12 +27,12 @@ export const getUserProfileFn = createServerFn()
         image: true,
       },
     });
-    return { profile };
+    return { profile } as { profile: ProfileWithRelations };
   });
 
 export function AvatarDropdown() {
   const user = useAuth();
-  const userProfile = useQuery<{ profile: Profile | undefined }>({
+  const userProfile = useQuery<{ profile: ProfileWithRelations | undefined }>({
     queryKey: ["userProfile"],
     queryFn: () => getUserProfileFn(),
     enabled: !!user,
@@ -44,15 +44,12 @@ export function AvatarDropdown() {
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src={
-                userProfile.data?.profile?.image?.data ||
-                userProfile.data?.profile?.image
-              }
+              src={userProfile.data?.profile?.image?.data}
               alt={userProfile.data?.profile?.displayName || "User"}
             />
             <AvatarFallback>
               {userProfile.data?.profile?.displayName?.[0]?.toUpperCase() ||
-                user.email?.[0]?.toUpperCase() ||
+                user?.email?.[0]?.toUpperCase() ||
                 "U"}
             </AvatarFallback>
           </Avatar>

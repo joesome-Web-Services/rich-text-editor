@@ -2,7 +2,7 @@ import { z } from "zod";
 import { asc } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
-import { books, chapters } from "~/db/schema";
+import { books, BookWithRelations, chapters } from "~/db/schema";
 import { database } from "~/db";
 import { adminMiddleware } from "~/lib/auth";
 
@@ -77,7 +77,7 @@ export const getBookFn = createServerFn()
       throw new Error("Book not found");
     }
 
-    return { book };
+    return { book } as { book: BookWithRelations };
   });
 
 export const deleteChapterFn = createServerFn()

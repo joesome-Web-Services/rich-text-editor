@@ -30,7 +30,6 @@ export const profiles = tableCreator("profile", {
     .unique(),
   displayName: text("displayName"),
   imageId: text("imageId"),
-  image: text("image"),
   imageRefId: integer("imageRefId").references(() => images.id, {
     onDelete: "set null",
   }),
@@ -105,6 +104,7 @@ export const chapters = tableCreator("chapter", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  readCount: integer("readCount").notNull().default(0),
 });
 
 export const images = tableCreator("image", {
@@ -151,6 +151,14 @@ export const booksRelations = relations(books, ({ one }) => ({
     references: [images.id],
   }),
 }));
+
+export type BookWithRelations = typeof books.$inferSelect & {
+  coverImage: typeof images.$inferSelect | null;
+};
+
+export type ProfileWithRelations = typeof profiles.$inferSelect & {
+  image: typeof images.$inferSelect | null;
+};
 
 export const commentsRelations = relations(comments, ({ one, many }) => ({
   user: one(users, {

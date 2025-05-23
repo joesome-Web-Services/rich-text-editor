@@ -1,0 +1,1 @@
+ALTER TABLE "app_chapter" ADD COLUMN "readCount" integer DEFAULT 0 NOT NULL;
