@@ -146,7 +146,12 @@ type CommentWithUser = CommentType & {
     id: number;
     profile: {
       displayName: string | null;
-      image: string | null;
+      imageId: string | null;
+      imageRefId: number | null;
+      image: {
+        id: number;
+        data: string;
+      } | null;
     } | null;
   };
 };
@@ -234,9 +239,9 @@ function CommentThread({
       <Comment
         id={node.id}
         author={node.user.profile?.displayName || "Anonymous"}
-        date={node.createdAt}
+        date={node.createdAt.toISOString()}
         content={node.content}
-        avatarUrl={node.user.profile?.image || undefined}
+        avatarUrl={node.user.profile?.image?.data || undefined}
         userId={node.user.id}
         onDelete={() => onDelete(node.id)}
         isDeleting={isDeleting}
@@ -344,7 +349,9 @@ export function Comments() {
   });
 
   // Heart state
-  const commentIds = (comments as CommentWithUser[]).map((c) => c.id);
+  const commentIds = (comments as unknown as CommentWithUser[]).map(
+    (c) => c.id
+  );
   const {
     data: heartData = {
       counts: {} as Record<number, number>,
@@ -429,7 +436,9 @@ export function Comments() {
   };
 
   // Build the comment tree
-  const commentTree = buildCommentTree(comments as CommentWithUser[]);
+  const commentTree = buildCommentTree(
+    comments as unknown as CommentWithUser[]
+  );
 
   function renderThread(node: CommentTreeNode) {
     return (

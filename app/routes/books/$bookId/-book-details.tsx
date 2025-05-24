@@ -1,6 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
-import { Pencil, BookOpen } from "lucide-react";
+import {
+  Pencil,
+  BookOpen,
+  MessageSquare,
+  BookText,
+  Clock,
+  Hash,
+} from "lucide-react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { type Book, type Chapter, type BookWithRelations } from "~/db/schema";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +46,14 @@ export function BookDetails({ bookId }: BookDetailsProps) {
   const chapters = bookData?.chapters ?? [];
   const totalWords = bookData?.totalWords ?? 0;
   const readingTimeMinutes = bookData?.readingTimeMinutes ?? 0;
+  const totalReadCount = chapters.reduce(
+    (acc, chapter) => acc + (chapter.readCount || 0),
+    0
+  );
+  const totalCommentCount = chapters.reduce(
+    (acc, chapter) => acc + (chapter.commentCount || 0),
+    0
+  );
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -80,15 +95,26 @@ export function BookDetails({ bookId }: BookDetailsProps) {
                   </>
                 ) : (
                   <>
-                    <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded flex items-center gap-1">
+                      <BookText className="w-4 h-4" />
                       {chapters.length}{" "}
                       {chapters.length === 1 ? "Chapter" : "Chapters"}
                     </span>
-                    <span className="bg-gray-100 text-gray-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    <span className="bg-gray-100 text-gray-700 text-sm font-medium px-2.5 py-0.5 rounded flex items-center gap-1">
+                      <Hash className="w-4 h-4" />
                       {totalWords} Words
                     </span>
-                    <span className="bg-blue-100 text-blue-700 text-sm font-medium px-2.5 py-0.5 rounded">
+                    <span className="bg-blue-100 text-blue-700 text-sm font-medium px-2.5 py-0.5 rounded flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
                       {readingTimeMinutes} min read
+                    </span>
+                    <span className="bg-green-100 text-green-700 text-sm font-medium px-2.5 py-0.5 rounded flex items-center gap-1">
+                      <BookOpen className="w-4 h-4" />
+                      {totalReadCount} Reads
+                    </span>
+                    <span className="bg-gray-100 text-gray-700 text-sm font-medium px-2.5 py-0.5 rounded flex items-center gap-1">
+                      <MessageSquare className="w-4 h-4" />
+                      {totalCommentCount} Comments
                     </span>
                   </>
                 )}

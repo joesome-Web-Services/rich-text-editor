@@ -1,7 +1,13 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
-import { PlusCircle, Loader2, GripVertical } from "lucide-react";
+import {
+  PlusCircle,
+  Loader2,
+  GripVertical,
+  BookOpen,
+  MessageSquare,
+} from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "~/components/ui/skeleton";
 import { type Chapter } from "~/db/schema";
@@ -220,11 +226,21 @@ export function Chapters({ bookId }: ChaptersProps) {
                                   )}
                                 </div>
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {format(
-                                  new Date(chapter.createdAt),
-                                  "MMM d, yyyy"
-                                )}
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <BookOpen className="w-4 h-4" />
+                                  {chapter.readCount}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MessageSquare className="w-4 h-4" />
+                                  {chapter.commentCount}
+                                </span>
+                                <span>
+                                  {format(
+                                    new Date(chapter.createdAt),
+                                    "MMM d, yyyy"
+                                  )}
+                                </span>
                               </div>
                             </div>
                           </Link>

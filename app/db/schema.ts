@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -137,13 +138,16 @@ export const comments = tableCreator("comment", {
   userId: serial("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  parentCommentId: integer("parentCommentId").references(() => comments.id, {
-    onDelete: "cascade",
-  }),
+  parentCommentId: integer("parentCommentId").references(
+    (): AnyPgColumn => comments.id,
+    {
+      onDelete: "cascade",
+    }
+  ),
   content: text("content").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}) as typeof comments;
+});
 
 export const booksRelations = relations(books, ({ one }) => ({
   coverImage: one(images, {

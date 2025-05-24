@@ -1,14 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, BookOpen, MessageSquare } from "lucide-react";
 import { isAdminFn } from "~/fn/auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
-import { BookWithRelations, chapters } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { BookWithRelations, chapters, comments } from "~/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { getTotalReadingTime } from "~/utils/helpers";
 import { useQuery } from "@tanstack/react-query";
 import { getConfigurationFn } from "../-components/header";
+import { BookCard } from "~/components/book-card";
 
 const getBooksFn = createServerFn().handler(async () => {
   const allBooks = await database.query.books.findMany({
@@ -34,11 +35,28 @@ const getBooksFn = createServerFn().handler(async () => {
       );
 
       const readingTimeMinutes = getTotalReadingTime(totalWords);
+      const totalReadCount = allChapters.reduce(
+        (acc, chapter) => acc + (chapter.readCount || 0),
+        0
+      );
+
+      // Fetch all comments for these chapters
+      const chapterIds = allChapters.map((ch) => ch.id);
+      let totalCommentCount = 0;
+      if (chapterIds.length > 0) {
+        const allComments = await database.query.comments.findMany({
+          where: inArray(comments.chapterId, chapterIds),
+        });
+        totalCommentCount = allComments.length;
+      }
+
       return {
         ...(book as BookWithRelations),
         totalWords,
         totalChapters: publishedChapters.length,
         readingTimeMinutes,
+        totalReadCount,
+        totalCommentCount,
       };
     })
   );
@@ -155,45 +173,7 @@ function RouteComponent() {
             ))}
           </>
         ) : (
-          books?.books.map((book) => (
-            <Link
-              key={book.id}
-              to="/books/$bookId"
-              params={{
-                bookId: book.id.toString(),
-              }}
-              className="block"
-            >
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] p-6 flex gap-6">
-                {book.coverImage?.data ? (
-                  <div className="w-48 h-64 flex-shrink-0">
-                    <img
-                      src={book.coverImage.data}
-                      alt={`Cover for ${book.title}`}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-48 h-64 flex-shrink-0 bg-gray-200 rounded-lg"></div>
-                )}
-                <div className="flex flex-col flex-grow">
-                  <h2 className="text-4xl mb-4 font-serif">{book.title}</h2>
-                  <div className="mb-4 flex items-center gap-4 text-gray-600">
-                    <span className="bg-rose-100 text-rose-700 text-sm font-medium px-2.5 py-0.5 rounded">
-                      {book.totalChapters} Chapters
-                    </span>
-                    <span className="bg-gray-100 text-gray-700 text-sm font-medium px-2.5 py-0.5 rounded">
-                      {book.totalWords} Words
-                    </span>
-                    <span className="bg-blue-100 text-blue-700 text-sm font-medium px-2.5 py-0.5 rounded">
-                      {book.readingTimeMinutes} min read
-                    </span>
-                  </div>
-                  <p className="text-gray-600 flex-grow">{book.description}</p>
-                </div>
-              </div>
-            </Link>
-          ))
+          books?.books.map((book) => <BookCard key={book.id} book={book} />)
         )}
       </div>
     </main>

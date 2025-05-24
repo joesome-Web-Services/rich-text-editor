@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
-import { books, chapters } from "~/db/schema";
-import { and, eq } from "drizzle-orm";
+import { books, chapters, comments } from "~/db/schema";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { adminMiddleware, unauthenticatedMiddleware } from "~/lib/auth";
 import { isAdminFn } from "~/fn/auth";
@@ -32,8 +32,28 @@ export const getBookWithChaptersFn = createServerFn()
       orderBy: chapters.order,
     });
 
+    // Get all comment counts for these chapters
+    const chapterIds = bookChapters.map((ch) => ch.id);
+    let commentCounts: Record<number, number> = {};
+    if (chapterIds.length > 0) {
+      const allComments = await database.query.comments.findMany({
+        where: inArray(comments.chapterId, chapterIds),
+      });
+      for (const chId of chapterIds) {
+        commentCounts[chId] = allComments.filter(
+          (c) => c.chapterId === chId
+        ).length;
+      }
+    }
+
+    // Attach commentCount to each chapter
+    const bookChaptersWithCounts = bookChapters.map((ch) => ({
+      ...ch,
+      commentCount: commentCounts[ch.id] || 0,
+    }));
+
     // Calculate total word count
-    const totalWords = bookChapters.reduce((acc, chapter) => {
+    const totalWords = bookChaptersWithCounts.reduce((acc, chapter) => {
       const words = chapter.content
         .split(/\s+/)
         .filter((word) => word.length > 0).length;
@@ -42,7 +62,12 @@ export const getBookWithChaptersFn = createServerFn()
 
     const readingTimeMinutes = getTotalReadingTime(totalWords);
 
-    return { book, chapters: bookChapters, totalWords, readingTimeMinutes };
+    return {
+      book,
+      chapters: bookChaptersWithCounts,
+      totalWords,
+      readingTimeMinutes,
+    };
   });
 
 export const createChapterFn = createServerFn()

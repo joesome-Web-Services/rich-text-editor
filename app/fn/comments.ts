@@ -18,7 +18,11 @@ export const getChapterCommentsFn = createServerFn()
       with: {
         user: {
           with: {
-            profile: true,
+            profile: {
+              with: {
+                image: true,
+              },
+            },
           },
         },
       },
