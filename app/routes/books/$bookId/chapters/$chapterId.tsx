@@ -42,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { useRouter } from "@tanstack/react-router";
+import { userInfoOption } from "~/query-options";
 
 const SAVE_DELAY = 1000;
 
@@ -140,6 +141,9 @@ function ChapterPanel({
 
 export const Route = createFileRoute("/books/$bookId/chapters/$chapterId")({
   component: RouteComponent,
+  validateSearch: z.object({
+    commentId: z.number().optional(),
+  }),
   loader: async ({ context, params }) => {
     const { chapterId, bookId } = params;
 
@@ -153,10 +157,7 @@ export const Route = createFileRoute("/books/$bookId/chapters/$chapterId")({
       queryFn: () => getChapterFn({ data: { chapterId } }),
     });
 
-    await context.queryClient.ensureQueryData({
-      queryKey: ["userInfo"],
-      queryFn: () => getUserInfoFn(),
-    });
+    await context.queryClient.ensureQueryData(userInfoOption);
 
     await context.queryClient.ensureQueryData({
       queryKey: ["book", bookId],
@@ -172,6 +173,8 @@ export const Route = createFileRoute("/books/$bookId/chapters/$chapterId")({
 
 function RouteComponent() {
   const { chapterId, bookId } = Route.useParams();
+  const { commentId } = Route.useSearch();
+  const commentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -180,6 +183,8 @@ function RouteComponent() {
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const [hasIncrementedReadCount, setHasIncrementedReadCount] = useState(false);
   const hasFiredIncrementRef = useRef(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [content, setContent] = useState("");
 
   const isAdminQuery = useQuery({
     queryKey: ["isAdmin"],
@@ -399,6 +404,35 @@ function RouteComponent() {
     },
   });
 
+  // Add effect to scroll to comment when commentId is present
+  useEffect(() => {
+    if (!commentId) return;
+
+    // Create a mutation observer to watch for the comment element
+    const observer = new MutationObserver((mutations, obs) => {
+      const commentElement = document.getElementById(`comment-${commentId}`);
+      if (commentElement) {
+        const y =
+          commentElement.getBoundingClientRect().top + window.pageYOffset - 200;
+        window.scrollTo({ top: y, behavior: "smooth" });
+        obs.disconnect(); // Stop observing once we've found and scrolled to the element
+      }
+    });
+
+    // Start observing the comments container
+    if (commentRef.current) {
+      observer.observe(commentRef.current, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    // Cleanup observer on unmount
+    return () => {
+      observer.disconnect();
+    };
+  }, [commentId]);
+
   if (chapterQuery.error) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -441,135 +475,122 @@ function RouteComponent() {
                 right={
                   isAdminQuery.data && (
                     <div className="flex items-center gap-2">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={deleteChapterMutation.isPending}
-                            className="inline-flex items-center gap-2"
-                          >
-                            {deleteChapterMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Trash2 className="h-4 w-4" />
-                                <span>Delete Chapter</span>
-                              </>
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will
-                              permanently delete the chapter and reorder the
-                              remaining chapters.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteChapterMutation.mutate()}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete Chapter
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                       <Button
-                        type="button"
-                        variant="secondary"
+                        variant="outline"
+                        size="sm"
                         onClick={() =>
                           togglePublishMutation.mutate(
                             !chapterQuery.data?.chapter.isPublished
                           )
                         }
                         disabled={togglePublishMutation.isPending}
-                        className="inline-flex items-center gap-2"
                       >
                         {togglePublishMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : chapterQuery.data?.chapter.isPublished ? (
                           <>
-                            <EyeOff className="h-4 w-4" />
-                            <span>Unpublish</span>
+                            <EyeOff className="h-4 w-4 mr-2" />
+                            Unpublish
                           </>
                         ) : (
                           <>
-                            <Globe className="h-4 w-4" />
-                            <span>Publish</span>
+                            <Globe className="h-4 w-4 mr-2" />
+                            Publish
                           </>
                         )}
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Chapter</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this chapter? This
+                              action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteChapterMutation.mutate()}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )
                 }
               />
-              <div className="px-6 py-10">
-                <div className="max-w-3xl mx-auto">
-                  <ChapterTitle chapterId={chapterId} />
 
-                  <hr className="border-gray-400 my-4 mb-8 max-w-2xl mx-auto" />
+              <div className="p-6">
+                <ChapterTitle chapterId={chapterId} />
 
-                  <div id="chapter-content">
+                <div className="mt-8 prose prose-lg max-w-none">
+                  {isEditing ? (
                     <ContentEditor
-                      content={chapterQuery.data?.chapter.content}
-                      onContentChange={(content) => {
-                        // Only update form when saving, not on every keystroke
-                        if (saveTimeoutRef.current) {
-                          clearTimeout(saveTimeoutRef.current);
-                        }
-                        saveTimeoutRef.current = setTimeout(() => {
-                          form.setValue("content", content, {
-                            shouldValidate: true,
-                          });
-                          debounceSave();
-                        }, SAVE_DELAY);
+                      content={content}
+                      onContentChange={setContent}
+                    />
+                  ) : (
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: chapterQuery.data?.chapter.content ?? "",
                       }}
                     />
-                  </div>
+                  )}
+                </div>
 
-                  <div className="flex justify-between items-center mt-8">
-                    <NextChapterButton
-                      bookId={bookId}
-                      currentChapterId={chapterId}
-                    />
-                    {isAdminQuery.data && isLastChapter && (
-                      <Button
-                        onClick={() => createChapterMutation.mutate()}
-                        disabled={createChapterMutation.isPending}
-                        className="inline-flex items-center gap-2 w-full"
-                      >
-                        {createChapterMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4" />
-                            <span>Create Next Chapter</span>
-                          </>
-                        )}
-                      </Button>
-                    )}
-                    {!isAdminQuery.data && isLastChapter && (
-                      <div className="text-center w-full bg-rose-50 p-4 rounded-lg border border-rose-200">
-                        <p className="text-rose-800 font-medium">
-                          You've reached the last chapter of this book!
-                        </p>
-                        <p className="text-rose-600 mt-1">
-                          Create an account to get notified when new chapters
-                          are published.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex justify-between items-center mt-8">
+                  <NextChapterButton
+                    bookId={bookId}
+                    currentChapterId={chapterId}
+                  />
+                  {isAdminQuery.data && isLastChapter && (
+                    <Button
+                      onClick={() => createChapterMutation.mutate()}
+                      disabled={createChapterMutation.isPending}
+                      className="inline-flex items-center gap-2 w-full"
+                    >
+                      {createChapterMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          <span>Create Next Chapter</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {!isAdminQuery.data && isLastChapter && (
+                    <div className="text-center w-full bg-rose-50 p-4 rounded-lg border border-rose-200">
+                      <p className="text-rose-800 font-medium">
+                        You've reached the last chapter of this book!
+                      </p>
+                      <p className="text-rose-600 mt-1">
+                        Create an account to get notified when new chapters are
+                        published.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
             <div className="bg-white shadow-lg rounded-xl px-6 py-10">
-              <Comments />
+              <div ref={commentRef}>
+                <Comments />
+              </div>
             </div>
           </div>
         </div>

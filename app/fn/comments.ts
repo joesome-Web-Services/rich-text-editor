@@ -2,9 +2,29 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authenticatedMiddleware } from "~/lib/auth";
 import { database } from "~/db";
-import { comments, users, commentHearts } from "~/db/schema";
+import {
+  comments,
+  users,
+  commentHearts,
+  notifications,
+  type Comment,
+  type User,
+  type Book,
+  type Chapter,
+} from "~/db/schema";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { isAdmin } from "~/lib/auth";
+
+type CommentWithRelations = Comment & {
+  user: User & {
+    profile: {
+      displayName: string | null;
+    } | null;
+  };
+  chapter: Chapter & {
+    book: Book;
+  };
+};
 
 export const getChapterCommentsFn = createServerFn()
   .validator(
@@ -42,7 +62,7 @@ export const createCommentFn = createServerFn()
     })
   )
   .handler(async ({ data, context }) => {
-    const result = (await database
+    const [comment] = await database
       .insert(comments)
       .values({
         chapterId: parseInt(data.chapterId),
@@ -50,10 +70,9 @@ export const createCommentFn = createServerFn()
         content: data.content,
         parentCommentId: data.parentCommentId ?? null,
       })
-      .returning()) as any[];
-    const comment = result[0];
+      .returning();
 
-    const commentWithUser = await database.query.comments.findFirst({
+    const commentWithUser = (await database.query.comments.findFirst({
       where: eq(comments.id, comment.id),
       with: {
         user: {
@@ -61,7 +80,28 @@ export const createCommentFn = createServerFn()
             profile: true,
           },
         },
+        chapter: {
+          with: {
+            book: true,
+          },
+        },
       },
+    })) as CommentWithRelations | undefined;
+
+    if (
+      !commentWithUser ||
+      !commentWithUser.chapter ||
+      !commentWithUser.chapter.book
+    ) {
+      throw new Error("Failed to create comment with required relations");
+    }
+
+    // Create a single notification for the comment
+    await database.insert(notifications).values({
+      createdByUserId: context.userId,
+      commentId: comment.id,
+      bookId: commentWithUser.chapter.book.id,
+      chapterId: commentWithUser.chapter.id,
     });
 
     return commentWithUser;

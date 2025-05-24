@@ -43,6 +43,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [profiles.userId],
   }),
   comments: many(comments),
+  notifications: many(notifications),
 }));
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -149,11 +150,12 @@ export const comments = tableCreator("comment", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const booksRelations = relations(books, ({ one }) => ({
+export const booksRelations = relations(books, ({ one, many }) => ({
   coverImage: one(images, {
     fields: [books.coverImageId],
     references: [images.id],
   }),
+  notifications: many(notifications),
 }));
 
 export type BookWithRelations = typeof books.$inferSelect & {
@@ -178,6 +180,7 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     references: [comments.id],
   }),
   children: many(comments),
+  notifications: many(notifications),
 }));
 
 export const commentHearts = tableCreator(
@@ -216,3 +219,50 @@ export type Book = typeof books.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Configuration = typeof configuration.$inferSelect;
+
+export const notifications = tableCreator("notification", {
+  id: serial("id").primaryKey(),
+  createdByUserId: serial("createdByUserId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  commentId: serial("commentId")
+    .notNull()
+    .references(() => comments.id, { onDelete: "cascade" }),
+  bookId: serial("bookId")
+    .notNull()
+    .references(() => books.id, { onDelete: "cascade" }),
+  chapterId: serial("chapterId")
+    .notNull()
+    .references(() => chapters.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  isRead: boolean("isRead").notNull().default(false),
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  createdByUser: one(users, {
+    fields: [notifications.createdByUserId],
+    references: [users.id],
+  }),
+  comment: one(comments, {
+    fields: [notifications.commentId],
+    references: [comments.id],
+  }),
+  book: one(books, {
+    fields: [notifications.bookId],
+    references: [books.id],
+  }),
+  chapter: one(chapters, {
+    fields: [notifications.chapterId],
+    references: [chapters.id],
+  }),
+}));
+
+export const chaptersRelations = relations(chapters, ({ one, many }) => ({
+  book: one(books, {
+    fields: [chapters.bookId],
+    references: [books.id],
+  }),
+  notifications: many(notifications),
+}));
+
+export type Notification = typeof notifications.$inferSelect;

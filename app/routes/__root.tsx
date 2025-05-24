@@ -18,6 +18,8 @@ import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 import { Toaster } from "~/components/ui/toaster";
 import { Configuration } from "~/db/schema";
+import { Suspense } from "react";
+import { userInfoOption } from "~/query-options";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   {

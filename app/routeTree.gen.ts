@@ -24,6 +24,7 @@ import { Route as BooksIndexImport } from './routes/books/index'
 import { Route as AdminIndexImport } from './routes/admin/index'
 import { Route as AboutIndexImport } from './routes/about/index'
 import { Route as BooksCreateImport } from './routes/books/create'
+import { Route as AdminNotificationsImport } from './routes/admin/notifications'
 import { Route as BooksBookIdIndexImport } from './routes/books/$bookId/index'
 import { Route as BooksBookIdEditImport } from './routes/books/$bookId/edit'
 import { Route as BooksBookIdChaptersChapterIdImport } from './routes/books/$bookId/chapters/$chapterId'
@@ -108,6 +109,12 @@ const BooksCreateRoute = BooksCreateImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const AdminNotificationsRoute = AdminNotificationsImport.update({
+  id: '/admin/notifications',
+  path: '/admin/notifications',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const BooksBookIdIndexRoute = BooksBookIdIndexImport.update({
   id: '/books/$bookId/',
   path: '/books/$bookId/',
@@ -187,6 +194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnauthorizedImport
       parentRoute: typeof rootRoute
     }
+    '/admin/notifications': {
+      id: '/admin/notifications'
+      path: '/admin/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AdminNotificationsImport
+      parentRoute: typeof rootRoute
+    }
     '/books/create': {
       id: '/books/create'
       path: '/books/create'
@@ -257,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/unauthenticated': typeof UnauthenticatedRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/books/create': typeof BooksCreateRoute
   '/about': typeof AboutIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -276,6 +291,7 @@ export interface FileRoutesByTo {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/unauthenticated': typeof UnauthenticatedRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/books/create': typeof BooksCreateRoute
   '/about': typeof AboutIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -296,6 +312,7 @@ export interface FileRoutesById {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/unauthenticated': typeof UnauthenticatedRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/books/create': typeof BooksCreateRoute
   '/about/': typeof AboutIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -317,6 +334,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/unauthenticated'
     | '/unauthorized'
+    | '/admin/notifications'
     | '/books/create'
     | '/about'
     | '/admin'
@@ -335,6 +353,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/unauthenticated'
     | '/unauthorized'
+    | '/admin/notifications'
     | '/books/create'
     | '/about'
     | '/admin'
@@ -353,6 +372,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/unauthenticated'
     | '/unauthorized'
+    | '/admin/notifications'
     | '/books/create'
     | '/about/'
     | '/admin/'
@@ -373,6 +393,7 @@ export interface RootRouteChildren {
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   UnauthenticatedRoute: typeof UnauthenticatedRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
   BooksCreateRoute: typeof BooksCreateRoute
   AboutIndexRoute: typeof AboutIndexRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -392,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   UnauthenticatedRoute: UnauthenticatedRoute,
   UnauthorizedRoute: UnauthorizedRoute,
+  AdminNotificationsRoute: AdminNotificationsRoute,
   BooksCreateRoute: BooksCreateRoute,
   AboutIndexRoute: AboutIndexRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -420,6 +442,7 @@ export const routeTree = rootRoute
         "/terms-of-service",
         "/unauthenticated",
         "/unauthorized",
+        "/admin/notifications",
         "/books/create",
         "/about/",
         "/admin/",
@@ -453,6 +476,9 @@ export const routeTree = rootRoute
     },
     "/unauthorized": {
       "filePath": "unauthorized.tsx"
+    },
+    "/admin/notifications": {
+      "filePath": "admin/notifications.tsx"
     },
     "/books/create": {
       "filePath": "books/create.tsx"

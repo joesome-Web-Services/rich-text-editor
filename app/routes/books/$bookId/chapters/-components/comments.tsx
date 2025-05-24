@@ -70,7 +70,7 @@ function Comment({
   const canDelete = isOwner || (user && isAdmin(user));
 
   return (
-    <div className="flex gap-4 py-4">
+    <div className="flex gap-4 py-4" id={`comment-${id}`}>
       <Avatar>
         <AvatarImage src={avatarUrl} />
         <AvatarFallback>{author[0].toUpperCase()}</AvatarFallback>

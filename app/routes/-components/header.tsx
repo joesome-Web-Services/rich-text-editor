@@ -4,7 +4,7 @@ import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "../../components/ui/sheet";
 import { useState } from "react";
 import { cn } from "~/lib/utils";
-import { useAuth } from "~/hooks/use-auth";
+import { getUserInfoFn, useAuth } from "~/hooks/use-auth";
 import { createServerFn } from "@tanstack/react-start";
 import { database } from "~/db";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isAdminFn } from "~/fn/auth";
 import { getConfiguration } from "~/data-access/configuration";
 import { AvatarDropdown } from "./avatar-dropdown";
+import { userInfoOption } from "~/query-options";
 
 export const getBooksFn = createServerFn()
   .validator(
@@ -34,7 +35,9 @@ export const getConfigurationFn = createServerFn().handler(async () => {
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const user = useAuth();
+
+  const userInfo = useQuery(userInfoOption);
+
   const isAdmin = useQuery({
     queryKey: ["isAdmin"],
     queryFn: isAdminFn,
@@ -104,7 +107,9 @@ export function Header() {
                   <Button>Admin</Button>
                 </Link>
               )}
-              {user ? (
+              {userInfo.isLoading ? (
+                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+              ) : userInfo.data?.user ? (
                 <AvatarDropdown />
               ) : (
                 <a href="/api/login/google">
@@ -156,7 +161,7 @@ export function Header() {
                       Admin
                     </Link>
                   )}
-                  {user ? (
+                  {userInfo.data?.user ? (
                     <a
                       href="/api/logout"
                       className="py-2 text-lg font-light text-gray-800 hover:text-rose-600 transition-colors"
