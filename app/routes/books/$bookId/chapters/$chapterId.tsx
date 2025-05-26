@@ -191,6 +191,35 @@ function RouteComponent() {
     queryFn: isAdminFn,
   });
 
+  const chapterQuery = useQuery({
+    queryKey: ["chapter", chapterId],
+    queryFn: () => getChapterFn({ data: { chapterId } }),
+    refetchOnWindowFocus: false,
+  });
+
+  const bookChaptersQuery = useQuery({
+    queryKey: ["book-chapters", bookId],
+    queryFn: () => getBookChaptersFn({ data: { bookId } }),
+  });
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      content: "",
+    },
+  });
+
+  // Update content when chapter data is loaded
+  useEffect(() => {
+    if (chapterQuery.data?.chapter) {
+      setContent(chapterQuery.data.chapter.content);
+      form.reset({
+        content: chapterQuery.data.chapter.content,
+      });
+      setLastSaved(new Date());
+    }
+  }, [chapterQuery.data, form]);
+
   // Reset increment ref when chapter changes
   useEffect(() => {
     hasFiredIncrementRef.current = false;
@@ -251,34 +280,6 @@ function RouteComponent() {
       window.removeEventListener("scroll", handleScroll);
     };
   }, [chapterId, hasIncrementedReadCount, isAdminQuery.data]);
-
-  const chapterQuery = useQuery({
-    queryKey: ["chapter", chapterId],
-    queryFn: () => getChapterFn({ data: { chapterId } }),
-    refetchOnWindowFocus: false,
-  });
-
-  const bookChaptersQuery = useQuery({
-    queryKey: ["book-chapters", bookId],
-    queryFn: () => getBookChaptersFn({ data: { bookId } }),
-  });
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      content: "",
-    },
-  });
-
-  // Update form values when data is loaded
-  useEffect(() => {
-    if (chapterQuery.data?.chapter) {
-      form.reset({
-        content: chapterQuery.data.chapter.content,
-      });
-      setLastSaved(new Date());
-    }
-  }, [chapterQuery.data, form]);
 
   const debounceSave = () => {
     setIsSaving(true);
@@ -541,13 +542,14 @@ function RouteComponent() {
                   <div id="chapter-content">
                     {isAdminQuery.data ? (
                       <ContentEditor
-                        content={content}
-                        onContentChange={(content) => {
+                        content={chapterQuery.data?.chapter.content}
+                        onContentChange={(newContent) => {
+                          setContent(newContent);
                           if (saveTimeoutRef.current) {
                             clearTimeout(saveTimeoutRef.current);
                           }
                           saveTimeoutRef.current = setTimeout(() => {
-                            form.setValue("content", content, {
+                            form.setValue("content", newContent, {
                               shouldValidate: true,
                             });
                             debounceSave();

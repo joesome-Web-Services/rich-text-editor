@@ -3,7 +3,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { Toolbar } from "./toolbar";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { isAdminFn } from "~/fn/auth";
 
@@ -17,6 +17,8 @@ export function ContentEditor({
   onContentChange,
 }: ContentEditorProps) {
   const lastSelection = useRef<{ from: number; to: number } | null>(null);
+  const [hasSelection, setHasSelection] = useState(false);
+  const contentRef = useRef(content);
 
   const { data: isAdmin } = useQuery({
     queryKey: ["isAdmin"],
@@ -39,19 +41,24 @@ export function ContentEditor({
         },
       }),
     ],
-    content: "",
+    content: content || "",
     editable: isAdmin,
     onUpdate: ({ editor }) => {
       if (isAdmin) {
         // Store current selection before update
         const { from, to } = editor.state.selection;
         lastSelection.current = { from, to };
+        setHasSelection(from !== to);
 
         const html = editor.getHTML();
         if (onContentChange) {
           onContentChange(html);
         }
       }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to } = editor.state.selection;
+      setHasSelection(from !== to);
     },
     editorProps: {
       attributes: {
@@ -61,18 +68,16 @@ export function ContentEditor({
     },
   });
 
-  // Update editor content when data is loaded
+  // Update editor content when data is loaded or changes
   useEffect(() => {
-    if (editor) {
-      if (content) {
+    if (editor && content !== contentRef.current) {
+      contentRef.current = content;
+      if (content !== undefined) {
         editor.commands.setContent(content);
         // Restore selection after content update
         if (lastSelection.current) {
           editor.commands.setTextSelection(lastSelection.current);
         }
-      } else {
-        // Clear the editor when content is empty or undefined
-        editor.commands.setContent("");
       }
     }
   }, [editor, content]);
@@ -94,7 +99,7 @@ export function ContentEditor({
           }}
         >
           <div className="border-b border-input">
-            <Toolbar editor={editor} />
+            <Toolbar editor={editor} hasSelection={hasSelection} />
           </div>
           <div
             className="p-3"
