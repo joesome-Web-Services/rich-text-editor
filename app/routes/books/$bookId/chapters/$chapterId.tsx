@@ -538,18 +538,32 @@ function RouteComponent() {
                 <ChapterTitle chapterId={chapterId} />
 
                 <div className="mt-8 prose prose-lg max-w-none">
-                  {isEditing ? (
-                    <ContentEditor
-                      content={content}
-                      onContentChange={setContent}
-                    />
-                  ) : (
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: chapterQuery.data?.chapter.content ?? "",
-                      }}
-                    />
-                  )}
+                  <div id="chapter-content">
+                    {isAdminQuery.data ? (
+                      <ContentEditor
+                        content={content}
+                        onContentChange={(newContent) => {
+                          setContent(newContent);
+                          // Only update form when saving, not on every keystroke
+                          if (saveTimeoutRef.current) {
+                            clearTimeout(saveTimeoutRef.current);
+                          }
+                          saveTimeoutRef.current = setTimeout(() => {
+                            form.setValue("content", newContent, {
+                              shouldValidate: true,
+                            });
+                            debounceSave();
+                          }, SAVE_DELAY);
+                        }}
+                      />
+                    ) : (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: chapterQuery.data?.chapter.content ?? "",
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center mt-8">
