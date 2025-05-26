@@ -44,6 +44,10 @@ export function Toolbar({ editor, hasSelection }: ToolbarProps) {
   const [refinementPrompt, setRefinementPrompt] = useState("");
   const [refinedText, setRefinedText] = useState("");
   const [isRefining, setIsRefining] = useState(false);
+  const [selectionRange, setSelectionRange] = useState<{
+    from: number;
+    to: number;
+  } | null>(null);
   const { toast } = useToast();
 
   const refineMutation = useMutation({
@@ -87,12 +91,10 @@ export function Toolbar({ editor, hasSelection }: ToolbarProps) {
   };
 
   const handleRefineText = () => {
-    const selectedText = editor.state.doc.textBetween(
-      editor.state.selection.from,
-      editor.state.selection.to,
-      "\n"
-    );
+    const { from, to } = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(from, to, "\n");
     setOriginalText(selectedText);
+    setSelectionRange({ from, to });
     setRefinedText("");
     setRefinementPrompt("");
     setIsRefining(false);
@@ -104,6 +106,7 @@ export function Toolbar({ editor, hasSelection }: ToolbarProps) {
     setRefinementPrompt("");
     setRefinedText("");
     setIsRefining(false);
+    setSelectionRange(null);
   };
 
   const handleRefine = () => {
@@ -124,17 +127,17 @@ export function Toolbar({ editor, hasSelection }: ToolbarProps) {
   };
 
   const handleReplaceText = () => {
-    if (editor) {
-      const { from, to } = editor.state.selection;
+    if (editor && selectionRange) {
       editor
         .chain()
         .focus()
-        .deleteRange({ from, to })
+        .deleteRange(selectionRange)
         .insertContent(refinedText)
         .run();
       setIsRefineDialogOpen(false);
       setRefinementPrompt("");
       setRefinedText("");
+      setSelectionRange(null);
       toast({
         title: "Success",
         description: "Text has been replaced successfully!",
