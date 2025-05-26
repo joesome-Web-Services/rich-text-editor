@@ -542,14 +542,12 @@ function RouteComponent() {
                     {isAdminQuery.data ? (
                       <ContentEditor
                         content={content}
-                        onContentChange={(newContent) => {
-                          setContent(newContent);
-                          // Only update form when saving, not on every keystroke
+                        onContentChange={(content) => {
                           if (saveTimeoutRef.current) {
                             clearTimeout(saveTimeoutRef.current);
                           }
                           saveTimeoutRef.current = setTimeout(() => {
-                            form.setValue("content", newContent, {
+                            form.setValue("content", content, {
                               shouldValidate: true,
                             });
                             debounceSave();
