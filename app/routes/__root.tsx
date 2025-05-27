@@ -38,6 +38,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             title,
             description,
           }),
+          {
+            name: "google-adsense-account",
+            content: "ca-pub-8362984917724658",
+          },
         ],
         links: [
           { rel: "stylesheet", href: appCss },
