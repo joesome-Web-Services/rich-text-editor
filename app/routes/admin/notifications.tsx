@@ -19,8 +19,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "~/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { adminMiddleware } from "~/lib/auth";
-import { Switch } from "~/components/ui/switch";
-import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 type NotificationWithRelations = Notification & {
   createdByUser: User & { profile: { displayName: string | null } };
@@ -64,7 +63,6 @@ export const Route = createFileRoute("/admin/notifications")({
 
 function RouteComponent() {
   const queryClient = useQueryClient();
-  const [showRead, setShowRead] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
@@ -95,20 +93,25 @@ function RouteComponent() {
 
   return (
     <div className="container py-8 mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Notifications</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Show read notifications</span>
-          <Switch checked={showRead} onCheckedChange={setShowRead} />
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold mb-6">Notifications</h1>
 
-      <div className="space-y-6">
-        {/* Unread Notifications */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Unread ({unreadNotifications.length})
-          </h2>
+      <Tabs defaultValue="unread" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="unread">
+            Unread
+            <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+              {unreadNotifications.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="read">
+            Read
+            <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
+              {readNotifications.length}
+            </span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="unread" className="space-y-4">
           {unreadNotifications.map((notification) => (
             <div
               key={notification.id}
@@ -155,53 +158,47 @@ function RouteComponent() {
           {unreadNotifications.length === 0 && (
             <p className="text-center text-gray-500">No unread notifications</p>
           )}
-        </div>
+        </TabsContent>
 
-        {/* Read Notifications */}
-        {showRead && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Read ({readNotifications.length})
-            </h2>
-            {readNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="p-4 rounded-lg border bg-white"
-              >
-                <div>
-                  <p className="font-medium">
-                    {notification.createdByUser.profile.displayName ||
-                      "Anonymous"}{" "}
-                    commented on{" "}
-                    <Link
-                      to="/books/$bookId/chapters/$chapterId"
-                      params={{
-                        bookId: notification.book.id.toString(),
-                        chapterId: notification.chapter.id.toString(),
-                      }}
-                      search={{ commentId: notification.comment.id }}
-                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      {notification.book.title} - {notification.chapter.title}
-                    </Link>
-                  </p>
-                  <p className="text-gray-600 mt-1">
-                    {notification.comment.content}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {formatDistanceToNow(new Date(notification.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </p>
-                </div>
+        <TabsContent value="read" className="space-y-4">
+          {readNotifications.map((notification) => (
+            <div
+              key={notification.id}
+              className="p-4 rounded-lg border bg-white"
+            >
+              <div>
+                <p className="font-medium">
+                  {notification.createdByUser.profile.displayName ||
+                    "Anonymous"}{" "}
+                  commented on{" "}
+                  <Link
+                    to="/books/$bookId/chapters/$chapterId"
+                    params={{
+                      bookId: notification.book.id.toString(),
+                      chapterId: notification.chapter.id.toString(),
+                    }}
+                    search={{ commentId: notification.comment.id }}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {notification.book.title} - {notification.chapter.title}
+                  </Link>
+                </p>
+                <p className="text-gray-600 mt-1">
+                  {notification.comment.content}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {formatDistanceToNow(new Date(notification.createdAt), {
+                    addSuffix: true,
+                  })}
+                </p>
               </div>
-            ))}
-            {readNotifications.length === 0 && (
-              <p className="text-center text-gray-500">No read notifications</p>
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+          {readNotifications.length === 0 && (
+            <p className="text-center text-gray-500">No read notifications</p>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

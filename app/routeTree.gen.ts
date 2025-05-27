@@ -18,6 +18,7 @@ import { Route as PurchaseImport } from './routes/purchase'
 import { Route as PrivacyPolicyImport } from './routes/privacy-policy'
 import { Route as LoginImport } from './routes/login'
 import { Route as CancelImport } from './routes/cancel'
+import { Route as AdminRouteImport } from './routes/admin/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as ProfileIndexImport } from './routes/profile/index'
 import { Route as BooksIndexImport } from './routes/books/index'
@@ -73,6 +74,12 @@ const CancelRoute = CancelImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const AdminRouteRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
@@ -92,9 +99,9 @@ const BooksIndexRoute = BooksIndexImport.update({
 } as any)
 
 const AdminIndexRoute = AdminIndexImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => rootRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 
 const AboutIndexRoute = AboutIndexImport.update({
@@ -110,9 +117,9 @@ const BooksCreateRoute = BooksCreateImport.update({
 } as any)
 
 const AdminNotificationsRoute = AdminNotificationsImport.update({
-  id: '/admin/notifications',
-  path: '/admin/notifications',
-  getParentRoute: () => rootRoute,
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 
 const BooksBookIdIndexRoute = BooksBookIdIndexImport.update({
@@ -143,6 +150,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRoute
     }
     '/cancel': {
@@ -196,10 +210,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/notifications': {
       id: '/admin/notifications'
-      path: '/admin/notifications'
+      path: '/notifications'
       fullPath: '/admin/notifications'
       preLoaderRoute: typeof AdminNotificationsImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof AdminRouteImport
     }
     '/books/create': {
       id: '/books/create'
@@ -217,10 +231,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/': {
       id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin'
+      path: '/'
+      fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof AdminRouteImport
     }
     '/books/': {
       id: '/books/'
@@ -262,8 +276,23 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
+interface AdminRouteRouteChildren {
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminNotificationsRoute: AdminNotificationsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/cancel': typeof CancelRoute
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -274,7 +303,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/books/create': typeof BooksCreateRoute
   '/about': typeof AboutIndexRoute
-  '/admin': typeof AdminIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/books': typeof BooksIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/books/$bookId/edit': typeof BooksBookIdEditRoute
@@ -305,6 +334,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/cancel': typeof CancelRoute
   '/login': typeof LoginRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -327,6 +357,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/cancel'
     | '/login'
     | '/privacy-policy'
@@ -337,7 +368,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/books/create'
     | '/about'
-    | '/admin'
+    | '/admin/'
     | '/books'
     | '/profile'
     | '/books/$bookId/edit'
@@ -365,6 +396,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/cancel'
     | '/login'
     | '/privacy-policy'
@@ -386,6 +418,7 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   CancelRoute: typeof CancelRoute
   LoginRoute: typeof LoginRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -393,10 +426,8 @@ export interface RootRouteChildren {
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   UnauthenticatedRoute: typeof UnauthenticatedRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
-  AdminNotificationsRoute: typeof AdminNotificationsRoute
   BooksCreateRoute: typeof BooksCreateRoute
   AboutIndexRoute: typeof AboutIndexRoute
-  AdminIndexRoute: typeof AdminIndexRoute
   BooksIndexRoute: typeof BooksIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
   BooksBookIdEditRoute: typeof BooksBookIdEditRoute
@@ -406,6 +437,7 @@ export interface RootRouteChildren {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   CancelRoute: CancelRoute,
   LoginRoute: LoginRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
@@ -413,10 +445,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   UnauthenticatedRoute: UnauthenticatedRoute,
   UnauthorizedRoute: UnauthorizedRoute,
-  AdminNotificationsRoute: AdminNotificationsRoute,
   BooksCreateRoute: BooksCreateRoute,
   AboutIndexRoute: AboutIndexRoute,
-  AdminIndexRoute: AdminIndexRoute,
   BooksIndexRoute: BooksIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
   BooksBookIdEditRoute: BooksBookIdEditRoute,
@@ -435,6 +465,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/admin",
         "/cancel",
         "/login",
         "/privacy-policy",
@@ -442,10 +473,8 @@ export const routeTree = rootRoute
         "/terms-of-service",
         "/unauthenticated",
         "/unauthorized",
-        "/admin/notifications",
         "/books/create",
         "/about/",
-        "/admin/",
         "/books/",
         "/profile/",
         "/books/$bookId/edit",
@@ -455,6 +484,13 @@ export const routeTree = rootRoute
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/admin": {
+      "filePath": "admin/route.tsx",
+      "children": [
+        "/admin/notifications",
+        "/admin/"
+      ]
     },
     "/cancel": {
       "filePath": "cancel.tsx"
@@ -478,7 +514,8 @@ export const routeTree = rootRoute
       "filePath": "unauthorized.tsx"
     },
     "/admin/notifications": {
-      "filePath": "admin/notifications.tsx"
+      "filePath": "admin/notifications.tsx",
+      "parent": "/admin"
     },
     "/books/create": {
       "filePath": "books/create.tsx"
@@ -487,7 +524,8 @@ export const routeTree = rootRoute
       "filePath": "about/index.tsx"
     },
     "/admin/": {
-      "filePath": "admin/index.tsx"
+      "filePath": "admin/index.tsx",
+      "parent": "/admin"
     },
     "/books/": {
       "filePath": "books/index.tsx"
