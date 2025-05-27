@@ -73,6 +73,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             defer: true,
             "data-website-id": "a40cba1d-b3d3-430f-9174-58ef5ecf69ae",
           },
+          {
+            src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8362984917724658",
+            async: true,
+            crossOrigin: "anonymous",
+          },
         ],
       };
     },
