@@ -68,17 +68,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           },
         ],
         scripts: [
-          {
-            src: "https://umami-production-101d.up.railway.app/script.js",
-            defer: true,
-            "data-website-id": "a40cba1d-b3d3-430f-9174-58ef5ecf69ae",
-          },
+          process.env.UMAMI_WEBSITE_ID && process.env.UMAMI_SCRIPT_URL
+            ? {
+                src: process.env.UMAMI_SCRIPT_URL,
+                defer: true,
+                "data-website-id": process.env.UMAMI_WEBSITE_ID!,
+              }
+            : undefined,
           {
             src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8362984917724658",
             async: true,
             crossOrigin: "anonymous",
           },
-        ],
+        ].filter(Boolean) as any[],
       };
     },
     loader: async ({ context }) => {
