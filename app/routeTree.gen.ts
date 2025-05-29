@@ -26,6 +26,7 @@ import { Route as AdminIndexImport } from './routes/admin/index'
 import { Route as AboutIndexImport } from './routes/about/index'
 import { Route as BooksCreateImport } from './routes/books/create'
 import { Route as AdminNotificationsImport } from './routes/admin/notifications'
+import { Route as ProjectsTheDiagramPlatformIndexImport } from './routes/projects/the-diagram-platform/index'
 import { Route as BooksBookIdIndexImport } from './routes/books/$bookId/index'
 import { Route as BooksBookIdEditImport } from './routes/books/$bookId/edit'
 import { Route as BooksBookIdChaptersChapterIdImport } from './routes/books/$bookId/chapters/$chapterId'
@@ -121,6 +122,13 @@ const AdminNotificationsRoute = AdminNotificationsImport.update({
   path: '/notifications',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+
+const ProjectsTheDiagramPlatformIndexRoute =
+  ProjectsTheDiagramPlatformIndexImport.update({
+    id: '/projects/the-diagram-platform/',
+    path: '/projects/the-diagram-platform/',
+    getParentRoute: () => rootRoute,
+  } as any)
 
 const BooksBookIdIndexRoute = BooksBookIdIndexImport.update({
   id: '/books/$bookId/',
@@ -264,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BooksBookIdIndexImport
       parentRoute: typeof rootRoute
     }
+    '/projects/the-diagram-platform/': {
+      id: '/projects/the-diagram-platform/'
+      path: '/projects/the-diagram-platform'
+      fullPath: '/projects/the-diagram-platform'
+      preLoaderRoute: typeof ProjectsTheDiagramPlatformIndexImport
+      parentRoute: typeof rootRoute
+    }
     '/books/$bookId/chapters/$chapterId': {
       id: '/books/$bookId/chapters/$chapterId'
       path: '/books/$bookId/chapters/$chapterId'
@@ -308,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileIndexRoute
   '/books/$bookId/edit': typeof BooksBookIdEditRoute
   '/books/$bookId': typeof BooksBookIdIndexRoute
+  '/projects/the-diagram-platform': typeof ProjectsTheDiagramPlatformIndexRoute
   '/books/$bookId/chapters/$chapterId': typeof BooksBookIdChaptersChapterIdRoute
 }
 
@@ -328,6 +344,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileIndexRoute
   '/books/$bookId/edit': typeof BooksBookIdEditRoute
   '/books/$bookId': typeof BooksBookIdIndexRoute
+  '/projects/the-diagram-platform': typeof ProjectsTheDiagramPlatformIndexRoute
   '/books/$bookId/chapters/$chapterId': typeof BooksBookIdChaptersChapterIdRoute
 }
 
@@ -350,6 +367,7 @@ export interface FileRoutesById {
   '/profile/': typeof ProfileIndexRoute
   '/books/$bookId/edit': typeof BooksBookIdEditRoute
   '/books/$bookId/': typeof BooksBookIdIndexRoute
+  '/projects/the-diagram-platform/': typeof ProjectsTheDiagramPlatformIndexRoute
   '/books/$bookId/chapters/$chapterId': typeof BooksBookIdChaptersChapterIdRoute
 }
 
@@ -373,6 +391,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/books/$bookId/edit'
     | '/books/$bookId'
+    | '/projects/the-diagram-platform'
     | '/books/$bookId/chapters/$chapterId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -392,6 +411,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/books/$bookId/edit'
     | '/books/$bookId'
+    | '/projects/the-diagram-platform'
     | '/books/$bookId/chapters/$chapterId'
   id:
     | '__root__'
@@ -412,6 +432,7 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/books/$bookId/edit'
     | '/books/$bookId/'
+    | '/projects/the-diagram-platform/'
     | '/books/$bookId/chapters/$chapterId'
   fileRoutesById: FileRoutesById
 }
@@ -432,6 +453,7 @@ export interface RootRouteChildren {
   ProfileIndexRoute: typeof ProfileIndexRoute
   BooksBookIdEditRoute: typeof BooksBookIdEditRoute
   BooksBookIdIndexRoute: typeof BooksBookIdIndexRoute
+  ProjectsTheDiagramPlatformIndexRoute: typeof ProjectsTheDiagramPlatformIndexRoute
   BooksBookIdChaptersChapterIdRoute: typeof BooksBookIdChaptersChapterIdRoute
 }
 
@@ -451,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileIndexRoute: ProfileIndexRoute,
   BooksBookIdEditRoute: BooksBookIdEditRoute,
   BooksBookIdIndexRoute: BooksBookIdIndexRoute,
+  ProjectsTheDiagramPlatformIndexRoute: ProjectsTheDiagramPlatformIndexRoute,
   BooksBookIdChaptersChapterIdRoute: BooksBookIdChaptersChapterIdRoute,
 }
 
@@ -479,6 +502,7 @@ export const routeTree = rootRoute
         "/profile/",
         "/books/$bookId/edit",
         "/books/$bookId/",
+        "/projects/the-diagram-platform/",
         "/books/$bookId/chapters/$chapterId"
       ]
     },
@@ -538,6 +562,9 @@ export const routeTree = rootRoute
     },
     "/books/$bookId/": {
       "filePath": "books/$bookId/index.tsx"
+    },
+    "/projects/the-diagram-platform/": {
+      "filePath": "projects/the-diagram-platform/index.tsx"
     },
     "/books/$bookId/chapters/$chapterId": {
       "filePath": "books/$bookId/chapters/$chapterId.tsx"

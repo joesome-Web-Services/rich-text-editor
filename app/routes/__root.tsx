@@ -149,7 +149,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         `}</style>
       </head>
       <body className="min-h-screen flex flex-col">
-        <Header />
+        {/* <Header /> */}
         <Toaster />
         <main className="pt-[80px] bg-gray-50 min-h-screen">{children}</main>
         <FooterSection />
