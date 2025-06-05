@@ -319,7 +319,8 @@ function RouteComponent() {
         },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
+      // Don't invalidate queries here to prevent cursor position reset
+      // queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
       setIsSaving(false);
       setLastSaved(new Date());
     },
@@ -346,7 +347,9 @@ function RouteComponent() {
       queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
       toast({
         title: "Success",
-        description: `Chapter ${chapterQuery.data?.chapter.isPublished ? "unpublished" : "published"} successfully!`,
+        description: `Chapter ${
+          chapterQuery.data?.chapter?.isPublished ? "unpublished" : "published"
+        } successfully!`,
       });
     },
     onError: (error) => {
@@ -481,14 +484,14 @@ function RouteComponent() {
                         size="sm"
                         onClick={() =>
                           togglePublishMutation.mutate(
-                            !chapterQuery.data?.chapter.isPublished
+                            !chapterQuery.data?.chapter?.isPublished
                           )
                         }
                         disabled={togglePublishMutation.isPending}
                       >
                         {togglePublishMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : chapterQuery.data?.chapter.isPublished ? (
+                        ) : chapterQuery.data?.chapter?.isPublished ? (
                           <>
                             <EyeOff className="h-4 w-4 mr-2" />
                             Unpublish
@@ -542,7 +545,7 @@ function RouteComponent() {
                   <div id="chapter-content">
                     {isAdminQuery.data ? (
                       <ContentEditor
-                        content={chapterQuery.data?.chapter.content}
+                        content={chapterQuery.data?.chapter?.content}
                         onContentChange={(newContent) => {
                           setContent(newContent);
                           if (saveTimeoutRef.current) {
@@ -559,7 +562,7 @@ function RouteComponent() {
                     ) : (
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: chapterQuery.data?.chapter.content ?? "",
+                          __html: chapterQuery.data?.chapter?.content ?? "",
                         }}
                       />
                     )}

@@ -25,12 +25,6 @@ export function ContentEditor({
     queryFn: isAdminFn,
   });
 
-  const calculateWordCount = (html: string) => {
-    const text = html.replace(/<[^>]*>/g, " ");
-    const words = text.trim().split(/\s+/);
-    return words.length;
-  };
-
   const editor = useEditor({
     extensions: [
       StarterKit,
